@@ -400,5 +400,44 @@ async function loadLog() {
 }
 poll(); setInterval(poll, 10000);
 </script>
+<!-- notice:x-suspended -->
+<style>
+  .notice { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.82); }
+  .notice.on { display: flex; }
+  .notice .card { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: #000; color: #fff; border: 1px solid #fff; padding: clamp(18px, 4vw, 30px); font: 400 14px/1.6 "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  .notice small { display: block; color: #8a8a8a; margin-bottom: 12px; }
+  .notice h2 { margin: 0 0 14px; font-size: clamp(20px, 3vw, 26px); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+  .notice p { margin: 0 0 12px; color: #c9c9c9; }
+  .notice p b { color: #fff; }
+  .notice ul { margin: 0 0 16px; padding-left: 18px; color: #c9c9c9; }
+  .notice .acts { display: flex; gap: 10px; flex-wrap: wrap; }
+  .notice a.nb, .notice button.nb { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border: 1px solid #fff; background: transparent; color: #fff; font: 700 13px/1 "JetBrains Mono", ui-monospace, Menlo, monospace; cursor: pointer; text-decoration: none; }
+  .notice button.nb { background: #fff; color: #000; }
+</style>
+<div class="notice" id="notice" role="dialog" aria-modal="true" aria-labelledby="notice-h">
+  <div class="card">
+    <small>&gt; notice</small>
+    <h2 id="notice-h">Our X account was suspended.</h2>
+    <p><b>@soltrashpanda_</b> is not available right now. Nothing about the project depends on it.</p>
+    <ul>
+      <li><b>The engine keeps running.</b> It still claims the creator fees every 3 minutes and splits them: liquidity, holder airdrop, treasury, burn.</li>
+      <li><b>Development continues.</b> The code is public and new work keeps shipping there.</li>
+      <li><b>This site is the official source</b> until a new account is announced here. Treat any X account claiming to be $SCRAP as unofficial.</li>
+    </ul>
+    <div class="acts"><button class="nb" id="notice-ok" type="button">Got it</button><a class="nb" href="/dashboard">Live dashboard</a><a class="nb" href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a></div>
+  </div>
+</div>
+<script>
+(function () {
+  var KEY = "scrap-notice-x-suspended", el = document.getElementById("notice");
+  var seen = false; try { seen = localStorage.getItem(KEY) === "1"; } catch (e) {}
+  function close() { el.classList.remove("on"); try { localStorage.setItem(KEY, "1"); } catch (e) {} }
+  if (!seen) el.classList.add("on");
+  document.getElementById("notice-ok").onclick = close;
+  el.addEventListener("click", function (e) { if (e.target === el) close(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<!-- /notice -->
 </body>
 </html>
