@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
+import { effectiveBps } from "./split.js";
 
 /// SCRAP engine config. $SCRAP is a plain pump.fun coin paired with SOL (no tax). The engine wallet
 /// is the creator wallet (or a 100% fee-sharing shareholder). Every DIVE_INTERVAL_SEC the engine
@@ -58,6 +59,8 @@ export const config = {
     gasReserveSol: num(process.env.GAS_RESERVE_SOL, 0.01),   // SOL kept for tx fees (only spent on buys when the quote IS SOL)
     minGasSol: num(process.env.MIN_GAS_SOL, 0.003),          // below this the engine refuses to fire (token-quoted coins need SOL for fees)
     slippagePct: num(process.env.SLIPPAGE_PCT, 5),
+    minTransferSol: num(process.env.MIN_TRANSFER_SOL, 0.002), // LP / treasury shares below this wait in the wallet (covers rent on a new account)
+    airdropHolders: num(process.env.AIRDROP_HOLDERS, 20),     // the airdrop share goes to this many top holders, pro rata
   },
   pollSec: num(process.env.POLL_SEC, 10),
   priorityMicroLamports: num(process.env.PRIORITY_MICRO_LAMPORTS, 100_000),
@@ -68,3 +71,17 @@ export const mode = () => (config.wallet ? "bot" : "watch");
 if (!config.mint) console.warn("[config] TOKEN_MINT not set — the page runs in 'not started' mode");
 if (!config.wallet) console.warn(`[config] WALLET_PRIVATE_KEY ${(process.env.WALLET_PRIVATE_KEY || "").trim() ? "is not a valid key" : "not set"} — watch mode: dry dives, nothing moves`);
 if (!config.schedulerEnabled) console.warn("[config] SCHEDULER_ENABLED=false — kill switch ON: no claims, no buys, no burns");
+
+// Where every claim of creator fees goes (basis points). Defaults follow the original brief:
+// 50% liquidity / 20% community airdrop / 20% meme treasury / 10% burn.
+config.lpWallet = (process.env.LP_WALLET || "").trim();
+config.treasuryWallet = (process.env.TREASURY_WALLET || "").trim();
+config.split = effectiveBps({
+  lpBps: num(process.env.SPLIT_LP_BPS, 5000),
+  treasuryBps: num(process.env.SPLIT_TREASURY_BPS, 2000),
+  airdropBps: num(process.env.SPLIT_AIRDROP_BPS, 2000),
+  burnBps: num(process.env.SPLIT_BURN_BPS, 1000),
+  lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet,
+});
+if (!config.lpWallet) console.warn("[config] LP_WALLET not set — the liquidity share is burned instead");
+if (!config.treasuryWallet) console.warn("[config] TREASURY_WALLET not set — the treasury share is burned instead");

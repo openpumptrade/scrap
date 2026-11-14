@@ -39,7 +39,7 @@ export function startApi() {
   app.get("/api/token", async (_req, res) => {
     if (!live.started) {
       const tax = await cached("taxcfg", 60_000, () => taxConfig()).catch(() => null);
-      return res.json({ started: false, mint: config.mint, wallet: config.wallet?.publicKey.toBase58() || config.walletAddress || "", brand: config.brand, rules: config.rules, chain: "Solana", launchpad: "pump.fun", plannedTaxBps: config.plannedTaxBps, taxGate: tax, now: now() });
+      return res.json({ started: false, mint: config.mint, wallet: config.wallet?.publicKey.toBase58() || config.walletAddress || "", brand: config.brand, rules: config.rules, split: config.split, lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet, chain: "Solana", launchpad: "pump.fun", plannedTaxBps: config.plannedTaxBps, taxGate: tax, now: now() });
     }
     res.json({
       started: true, mode: mode(), brand: config.brand, rules: config.rules,
@@ -53,6 +53,7 @@ export function startApi() {
       burnedPct: coin.supply0 ? coin.burned / coin.supply0 : 0, marketUpdatedAt: coin.updatedAt,
       pot: { unclaimed: pot.unclaimed, unclaimedUsd: pot.unclaimedUsd, wallet: pot.wallet, spendable: pot.spendable, walletSol: pot.walletSol, walletTokens: pot.walletTokens, estTokens: pot.estTokens, updatedAt: pot.updatedAt, error: pot.error },
       nextDiveAt: state.nextDiveAt, genesis: state.genesis, progress: state.progress, lastNote: state.lastNote,
+      split: config.split, lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet, totalLp: state.totalLp, totalTreasury: state.totalTreasury, totalAirdropped: state.totalAirdropped,
       divesRun: state.divesRun, totalSpentQuote: state.totalSpentQuote, totalSpentUsd: state.totalSpentUsd, totalBurned: state.totalBurned, dryTotals: state.dryTotals, lastDive: state.lastDive,
       links: { pump: `https://pump.fun/coin/${coin.mint}`, explorer: `https://solscan.io/token/${coin.mint}`, wallet: `https://solscan.io/account/${engineWallet()}`, tx: "https://solscan.io/tx/", quote: coin.quote?.isSol ? "" : `https://solscan.io/token/${coin.quote.mint}` },
       now: now(),

@@ -1,7 +1,8 @@
 import { config, mode } from "./config.js";
 import { sql, getMeta, setMeta } from "./db.js";
-import { getSolBalance, getSolUsd } from "./solana.js";
-import { distributeSharedFees, burnAmount,claimCreatorFees, curveBuy, pumpswapBuy, jupiterBuy, mintProgramId, tokenBalanceRaw, tokenBalanceRawSettled, totalSupply, isGraduated, creatorVaultBalancesRaw, quoteBalance, toRaw } from "./pumpfun.js";
+import { getSolBalance, getSolUsd, sendSol } from "./solana.js";
+import { allocate, splitBought } from "./split.js";
+import { distributeSharedFees, burnAmount, topHolders, airdropTokens, claimCreatorFees, curveBuy, pumpswapBuy, jupiterBuy, mintProgramId, tokenBalanceRaw, tokenBalanceRawSettled, totalSupply, isGraduated, creatorVaultBalancesRaw, quoteBalance, toRaw } from "./pumpfun.js";
 import { coin, pot, readPot } from "./tracker.js";
 
 /// The burner (SCRAP). Every DIVE_INTERVAL_SEC (3 minutes), on a fixed clock:
@@ -22,6 +23,7 @@ export const state = {
   totalSpentQuote: 0,
   totalSpentUsd: 0,
   totalBurned: 0,
+  totalLp: 0, totalTreasury: 0, totalAirdropped: 0,
   lastDive: null,
   genesis: 0,
   dryTotals: { dives: 0, spentQuote: 0, spentUsd: 0, burned: 0 },
@@ -46,12 +48,13 @@ export async function startDiver() {
 }
 
 async function loadHistory() {
-  const [agg] = await sql`select count(*)::int as n, coalesce(sum(spent_quote), 0) as spent, coalesce(sum(spent_quote * coalesce(quote_usd, 0)), 0) as usd, coalesce(sum(tokens_burned), 0) as burned from dives where status = 'done' and dry = false`;
+  const [agg] = await sql`select count(*)::int as n, coalesce(sum(spent_quote), 0) as spent, coalesce(sum(spent_quote * coalesce(quote_usd, 0)), 0) as usd, coalesce(sum(tokens_burned), 0) as burned, coalesce(sum(lp_quote), 0) as lp, coalesce(sum(treasury_quote), 0) as treasury, coalesce(sum(tokens_airdropped), 0) as airdropped from dives where status = 'done' and dry = false`;
   const [dry] = await sql`select count(*)::int as n, coalesce(sum(spent_quote), 0) as spent, coalesce(sum(spent_quote * coalesce(quote_usd, 0)), 0) as usd, coalesce(sum(tokens_burned), 0) as burned from dives where status = 'done' and dry = true`;
   state.divesRun = agg.n;
   state.totalSpentQuote = Number(agg.spent);
   state.totalSpentUsd = Number(agg.usd);
   state.totalBurned = Number(agg.burned);
+  state.totalLp = Number(agg.lp); state.totalTreasury = Number(agg.treasury); state.totalAirdropped = Number(agg.airdropped);
   state.dryTotals = { dives: dry.n, spentQuote: Number(dry.spent), spentUsd: Number(dry.usd), burned: Number(dry.burned) };
   const last = await sql`select * from dives where status in ('done', 'skipped', 'failed') order by id desc limit 1`;
   state.lastDive = last.length ? rowToJson(last[0]) : null;
@@ -92,6 +95,7 @@ export function rowToJson(r) {
     id: r.id, t: r.ts, status: r.status, dry: r.dry, potQuote: r.pot_quote, claimedQuote: r.claimed_quote, spentQuote: r.spent_quote,
     tokensBurned: r.tokens_burned, quoteUsd: r.quote_usd, priceUsd: r.price_usd, solUsd: r.sol_usd, supplyAfter: r.supply_after, venue: r.venue,
     claimTx: r.claim_tx, buyTx: r.buy_tx, burnTx: r.burn_tx, note: r.note, finishedAt: r.finished_at,
+    lpQuote: r.lp_quote, treasuryQuote: r.treasury_quote, tokensAirdropped: r.tokens_airdropped, airdropRecipients: r.airdrop_recipients, splitTx: r.split_tx, airdropTx: r.airdrop_tx,
   };
 }
 
@@ -156,9 +160,40 @@ export async function runDive() {
       console.log(`[diver] ${coin.sharing ? "distributed" : "claimed"} → ${claimed} ${sym} into the engine · ${sig}`);
     }
   }
-  const walletQuote = await quoteBalance(me, q);
-  const spend = q.isSol ? Math.max(0, walletQuote - config.rules.gasReserveSol) : walletQuote;
-  await sql`update dives set claimed_quote = ${claimed}, claim_tx = ${txs.claim || null}, status = 'buying' where id = ${id}`;
+  let walletQuote = await quoteBalance(me, q);
+  let spend = walletQuote;
+  // 1b. split the claim (SOL-quoted coins): LP reserve + treasury leave as SOL, the rest is the buy budget.
+  //     A coin quoted in another asset keeps the simple path: everything buys and burns.
+  const bps = q.isSol ? config.split : { lp: 0, treasury: 0, airdrop: 0, burn: 10_000 };
+  let sentLp = 0, sentTreasury = 0;
+  if (q.isSol) {
+    const L = (k) => getMeta(k, "0").then((v) => BigInt(v || "0"));
+    const ledger0 = { lp: await L("owed_lp"), treasury: await L("owed_treasury"), buy: await L("buy_budget") };
+    const { ledger, add } = allocate({ claimed: toRaw(claimed, 9), wallet: toRaw(walletQuote, 9), reserve: toRaw(config.rules.gasReserveSol, 9), ledger: ledger0, bps });
+    await setMeta("owed_lp", ledger.lp.toString()); await setMeta("owed_treasury", ledger.treasury.toString()); await setMeta("buy_budget", ledger.buy.toString());
+    if (claimed > 0) console.log(`[diver] split → LP ${Number(add.lp) / 1e9} · treasury ${Number(add.treasury) / 1e9} · buy ${Number(add.buy) / 1e9} SOL`);
+    const min = toRaw(config.rules.minTransferSol, 9);
+    const out = [];
+    if (config.lpWallet && ledger.lp >= min) out.push({ key: "owed_lp", to: config.lpWallet, lamports: ledger.lp });
+    if (config.treasuryWallet && ledger.treasury >= min) out.push({ key: "owed_treasury", to: config.treasuryWallet, lamports: ledger.treasury });
+    if (out.length) {
+      try {
+        txs.split = await sendSol({ wallet, transfers: out });
+        for (const o of out) await setMeta(o.key, "0");
+        sentLp = Number(out.find((o) => o.key === "owed_lp")?.lamports || 0n) / 1e9;
+        sentTreasury = Number(out.find((o) => o.key === "owed_treasury")?.lamports || 0n) / 1e9;
+        console.log(`[diver] sent ${sentLp} SOL to the LP reserve and ${sentTreasury} SOL to the treasury · ${txs.split}`);
+        await new Promise((r) => setTimeout(r, 1500));
+        walletQuote = await quoteBalance(me, q);
+      } catch (err) { console.warn(`[diver] split transfer failed (${String(err.message).slice(0, 120)}), it stays owed for the next dive`); }
+    }
+    // spend the buy budget only, and never the gas reserve or SOL still owed to the other buckets
+    const stillOwed = (await L("owed_lp")) + (await L("owed_treasury"));
+    const room = toRaw(walletQuote, 9) - toRaw(config.rules.gasReserveSol, 9) - stillOwed;
+    const budget = ledger.buy < room ? ledger.buy : room;
+    spend = budget > 0n ? Number(budget) / 1e9 : 0;
+  }
+  await sql`update dives set claimed_quote = ${claimed}, claim_tx = ${txs.claim || null}, split_tx = ${txs.split || null}, lp_quote = ${sentLp}, treasury_quote = ${sentTreasury}, status = 'buying' where id = ${id}`;
   setProgress({ status: "buying", claimed, txs: { ...txs } });
 
   // tokens in the wallet before the buy are NOT the engine's to burn (dev bag, transfers)
@@ -188,14 +223,34 @@ export async function runDive() {
   if (buyTx) await new Promise((r) => setTimeout(r, 1500)); // let the RPC catch up with the buy
   const walletAfterBuy = await quoteBalance(me, q);
   const spent = buyTx ? Math.max(0, walletQuote - walletAfterBuy) : 0;
+  if (q.isSol && buyTx) {
+    const left = BigInt((await getMeta("buy_budget", "0")) || "0") - toRaw(spent, 9);
+    await setMeta("buy_budget", (left > 0n ? left : 0n).toString());
+  }
   await sql`update dives set spent_quote = ${spent}, buy_tx = ${buyTx || null}, venue = ${venue || null}, status = 'burning' where id = ${id}`;
   setProgress({ status: "burning", spent, txs: { ...txs } });
 
-  // 3. burn only what this buy brought in + what a previous failed burn still owes
+  // 3. dispose of exactly what this buy brought in: the airdrop share goes to the top holders, the
+  //    rest is burned (together with whatever a previous failed burn still owes).
   const balanceAfterRaw = buyTx ? await tokenBalanceRawSettled(me, config.mint, programId) : balanceBeforeRaw;
   const boughtRaw = balanceAfterRaw > balanceBeforeRaw ? balanceAfterRaw - balanceBeforeRaw : 0n;
-  const owedRaw = BigInt((await getMeta("owed_burn_raw", "0")) || "0") + boughtRaw;
-  if (boughtRaw > 0n) await setMeta("owed_burn_raw", owedRaw.toString()); // survives a failed burn or a restart
+  const part = splitBought(boughtRaw, bps);
+  // everything bought is owed to the burn until the airdrop has actually left the wallet:
+  // a crash or a failed airdrop burns the tokens instead of stranding them
+  const owedBefore = BigInt((await getMeta("owed_burn_raw", "0")) || "0") + boughtRaw;
+  if (boughtRaw > 0n) await setMeta("owed_burn_raw", owedBefore.toString());
+  let airdropped = 0, recipients = 0, sentRaw = 0n;
+  if (part.airdropRaw > 0n) {
+    try {
+      const holders = await topHolders(config.mint, { exclude: [me, config.lpWallet, config.treasuryWallet, coin.creator], limit: config.rules.airdropHolders });
+      const drop = await airdropTokens({ wallet, mint: config.mint, programId, amountRaw: part.airdropRaw, holders });
+      sentRaw = drop.sentRaw; recipients = drop.recipients; airdropped = Number(sentRaw) / 1e6;
+      if (drop.sigs.length) txs.airdrop = drop.sigs[0];
+      if (sentRaw > 0n) await setMeta("owed_burn_raw", (owedBefore - sentRaw).toString());
+      console.log(`[diver] airdropped ${airdropped.toLocaleString()} $${coin.symbol} to ${recipients} holders${drop.error ? ` (stopped: ${drop.error})` : ""}`);
+    } catch (err) { console.warn(`[diver] airdrop failed (${String(err.message).slice(0, 120)}), its share is burned instead`); }
+  }
+  const owedRaw = owedBefore - sentRaw;
   let burned = 0;
   if (owedRaw > 0n) {
     const { sig, amount } = await burnAmount({ wallet, mint: config.mint, programId, amountRaw: owedRaw });
@@ -207,11 +262,11 @@ export async function runDive() {
   }
   const supplyAfter = await totalSupply(config.mint).catch(() => null);
   const solUsd = await getSolUsd();
-  const status = buyTx || burned > 0 ? "done" : "skipped";
+  const status = buyTx || burned > 0 || txs.split ? "done" : "skipped";
   const msg = status === "done"
-    ? `claimed ${claimed} ${sym} · bought with ${spent} ${sym} on ${venue} · burned ${Math.round(burned).toLocaleString()} $${coin.symbol}`
-    : `${spend} ${sym} (~$${(spend * quoteUsd).toFixed(2)}) available, under the $${config.rules.minBuyUsd} minimum — rolls into the next dive`;
-  await sql`update dives set status = ${status}, tokens_burned = ${burned}, burn_tx = ${txs.burn || null}, supply_after = ${supplyAfter}, sol_usd = ${solUsd}, price_usd = ${coin.priceUsd}, quote_usd = ${coin.quoteUsd || quoteUsd}, note = ${msg}, finished_at = ${now()} where id = ${id}`;
+    ? `claimed ${claimed} ${sym}${txs.split ? ` · ${sentLp} to LP, ${sentTreasury} to treasury` : ""}${buyTx ? ` · bought with ${spent} ${sym} on ${venue}` : ""} · airdropped ${Math.round(airdropped).toLocaleString()} to ${recipients} holders · burned ${Math.round(burned).toLocaleString()} $${coin.symbol}`
+    : `${spend} ${sym} (~$${(spend * quoteUsd).toFixed(2)}) in the buy budget, under the $${config.rules.minBuyUsd} minimum — rolls into the next dive`;
+  await sql`update dives set status = ${status}, tokens_airdropped = ${airdropped}, airdrop_recipients = ${recipients}, airdrop_tx = ${txs.airdrop || null}, tokens_burned = ${burned}, burn_tx = ${txs.burn || null}, supply_after = ${supplyAfter}, sol_usd = ${solUsd}, price_usd = ${coin.priceUsd}, quote_usd = ${coin.quoteUsd || quoteUsd}, note = ${msg}, finished_at = ${now()} where id = ${id}`;
   setProgress({ status, tokens: burned, txs: { ...txs }, note: msg });
   if (status === "done" && state.lastNote) { state.lastNote = null; await setMeta("last_note", ""); } // a good dive clears the last error note
   if (supplyAfter !== null) { coin.supply = supplyAfter; coin.burned = Math.max(0, coin.supply0 - supplyAfter); }

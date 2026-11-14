@@ -7,7 +7,8 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "launch": "node scripts/launch.mjs",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@pump-fun/pump-sdk": "^2.0.0",

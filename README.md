@@ -7,9 +7,12 @@
 <p align="center">
   <a href="https://solanatrashpanda.fun">Website</a> ·
   <a href="#how-it-works">How it works</a> ·
+  <a href="#the-split">The split</a> ·
   <a href="#run-the-engine">Run the engine</a> ·
   <a href="#safety-rules-baked-in">Safety rules</a>
 </p>
+
+<p align="center"><code>7x8HCyf5Z3JYWXmC7p6C4w11Hw6JAXFEiZy6PCDBpump</code></p>
 
 ---
 
@@ -21,7 +24,7 @@ We asked an AI one question:
 
 It answered with a full brief: **$SCRAP, the Solana Trash Panda**. A self-aware raccoon astronaut that digs
 through the dumpster and burns what it finds, an ASCII sketch of the mascot, a tagline and a rule set
-(1B supply, 0% tax, no presale, no VC, "just memes and transparent burns").
+(1B supply, 0% tax, no presale, no VC, a 50 / 20 / 20 / 10 allocation, "just memes and transparent burns").
 
 ```
     /\_/\      <- laser eyes: ON
@@ -34,19 +37,44 @@ through the dumpster and burns what it finds, an ASCII sketch of the mascot, a t
   /_/   \_\
 ```
 
-This repository is that brief, shipped: the website and the engine that makes the burns real.
+This repository is that brief, shipped: the website and the engine that runs it.
 
 ## How it works
 
-$SCRAP is a standard pump.fun coin paired with SOL. Every trade pays pump.fun creator fees. The engine
-turns those fees into burns on a fixed 3-minute clock. Each cycle is called a **dive**:
+$SCRAP is a standard pump.fun coin paired with SOL. Every trade pays pump.fun creator fees, and all of
+them are routed to the engine wallet. On a fixed 3-minute clock the engine runs one cycle, called a **dive**:
 
 1. **Claim.** All unclaimed creator fees (bonding curve and PumpSwap) go to the engine wallet.
-2. **Buy.** One market buy of $SCRAP with everything claimed, on the venue the coin trades on
+2. **Split.** The claim is divided into four buckets. The liquidity and treasury shares leave as SOL in
+   one transaction.
+3. **Buy.** The airdrop and burn shares go into one market buy of $SCRAP on the venue the coin trades on
    (curve, PumpSwap, Jupiter as a fallback).
-3. **Burn.** Exactly the tokens that buy brought in are burned on-chain.
+4. **Airdrop and burn.** The tokens that buy returned are divided: the airdrop share is sent to the top
+   holders pro rata, the rest is burned on-chain.
 
-No team cut, no ops share, no sell path. A pot too small to be worth a transaction rolls into the next dive.
+The engine has no sell path. A pot too small to be worth a transaction rolls into the next dive.
+
+## The split
+
+The brief wrote its allocation as a token split. A fair launch has no tokens to allocate, so the same
+numbers are applied to every claim of creator fees.
+
+| Share | Bucket | What happens |
+|---|---|---|
+| 50% | Liquidity | SOL sent to the liquidity reserve wallet `33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu`. Held there for now. |
+| 20% | Community airdrop | Buys $SCRAP and sends it to the top 20 holders, pro rata. |
+| 20% | Meme treasury | SOL sent to the treasury wallet `GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96`. |
+| 10% | Burn | Buys $SCRAP and burns it. |
+
+Engine wallet: `9uhoRkqugdA5mUk1Z7xjZ4exh5Y9AhMpin9SRV6vCYKA`. It keeps a small SOL reserve for
+transaction fees and nothing else.
+
+What is **not** automated yet, stated plainly:
+
+- The liquidity reserve only accumulates. Depositing it into the PumpSwap pool and burning the LP tokens
+  is the next piece of code.
+- The treasury is a team-held wallet, not a multisig. It is meant to pay the "Recycle a rug" prizes and
+  whatever the weekly Dumpster Dive vote decides (more burns, or a donation to animal shelters).
 
 ## Spec vs. shipped
 
@@ -55,24 +83,29 @@ No team cut, no ops share, no sell path. A pot too small to be worth a transacti
 | 1,000,000,000 supply, 0% tax | At launch (plain SOL pair) |
 | Mint and freeze authority revoked | At launch (pump.fun default) |
 | No presale, no VC | At launch (fair launch on the curve) |
-| Transparent burns | Shipped: this engine, every transaction in the dive log |
-| 50 / 20 / 20 / 10 allocation | Dropped: a fair launch has no allocation to split |
-| "Recycle a rug" roast contest | Community, not built |
-| Weekly Dumpster Dive vote, Scrap Badge cNFT | Later, not built |
+| Transparent burns | Engine: 10% of every claim, each transaction in the dive log |
+| 50 / 20 / 20 / 10 allocation | Engine: applied to creator fees instead of supply |
+| Fast, cheap airdrops | Engine: 20% of every claim to the top holders |
+| LP burned | Next: the liquidity share accumulates, the deposit is not built |
+| "Recycle a rug" roast contest | Next: paid from the treasury, not built |
+| Weekly Dumpster Dive vote | Next: not built |
+| Scrap Badge cNFT | Later: not built |
 
 ## Repository layout
 
 ```
 index.html, *.png      the website (static, deployed as is)
 art/                   the pages that render logo.png / og.png from the ASCII mascot
-engine/                the burn engine: Node 20+, Express, Postgres
+engine/                the engine: Node 20+, Express, Postgres
   src/config.js        every setting, read from the environment
-  src/diver.js         the dive: claim, one buy, measured burn
-  src/pumpfun.js       pump.fun / PumpSwap / Jupiter transactions
+  src/split.js         the fee split math (pure functions)
+  src/diver.js         the dive: claim, split, one buy, airdrop, measured burn
+  src/pumpfun.js       pump.fun / PumpSwap / Jupiter transactions, holders, airdrop
   src/tracker.js       price, supply and fee-pot tracking
   src/api.js           JSON API + serves engine/public
   scripts/launch.mjs   create the coin (dry run by default)
   scripts/verify.mjs   simulate the engine's transaction paths, no keys
+  test/                unit tests for the split math
 Dockerfile             one image: engine + page
 ```
 
@@ -84,32 +117,44 @@ Requires Node 20+ and a Postgres database.
 cd engine
 npm install
 cp .env.example .env      # set TOKEN_MINT, DATABASE_URL, RPC_URL
+npm test                  # split math
 npm start                 # http://localhost:4000
 ```
 
 Without `WALLET_PRIVATE_KEY` the engine runs in **watch mode**: it tracks the coin and records dry dives,
-and nothing moves on-chain. With the creator wallet key it runs in **bot mode** and executes real dives.
+and nothing moves on-chain. With the key of the wallet that receives the creator fees it runs in **bot
+mode** and executes real dives.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `TOKEN_MINT` | empty | The coin. Empty serves the page in "not started" mode. |
-| `WALLET_PRIVATE_KEY` | empty | Creator wallet key (bs58 or JSON array). Empty means watch mode. |
+| `WALLET_PRIVATE_KEY` | empty | Engine wallet key (bs58 or JSON array). Empty means watch mode. |
+| `SPLIT_LP_BPS` | `5000` | Share of every claim sent to `LP_WALLET`, in basis points. |
+| `SPLIT_TREASURY_BPS` | `2000` | Share sent to `TREASURY_WALLET`. |
+| `SPLIT_AIRDROP_BPS` | `2000` | Share that buys the coin for the holder airdrop. |
+| `SPLIT_BURN_BPS` | `1000` | Informational: burn always gets whatever the other three leave. |
+| `LP_WALLET`, `TREASURY_WALLET` | empty | Destination wallets. A share without a wallet is burned instead. |
+| `AIRDROP_HOLDERS` | `20` | How many top holders receive the airdrop. |
+| `MIN_TRANSFER_SOL` | `0.002` | LP and treasury shares below this wait in the wallet. |
 | `DIVE_INTERVAL_SEC` | `180` | Seconds between dives. |
 | `MIN_CLAIM_USD` | `0.1` | Do not claim dust. |
-| `MIN_BUY_USD` | `0.25` | A smaller pot rolls into the next dive. |
-| `GAS_RESERVE_SOL` | `0.01` | SOL the engine never spends on buys. |
+| `MIN_BUY_USD` | `0.25` | A smaller buy budget rolls into the next dive. |
+| `GAS_RESERVE_SOL` | `0.01` | SOL the engine never distributes or spends on buys. |
 | `SLIPPAGE_PCT` | `5` | Slippage for the buy. |
 | `SCHEDULER_ENABLED` | `true` | Kill switch. `false` keeps the API up and moves nothing. |
 | `DRY_RUN` | `false` | Force dry dives even with a key. |
 | `DATABASE_URL` | local Postgres | Dive history and engine state. |
 | `RPC_URL` | public mainnet | Use a paid RPC in production. |
 
+The split applies to SOL-paired coins. A coin quoted in another asset keeps the simple path: everything
+buys and burns.
+
 ### API
 
 | Route | Returns |
 |---|---|
-| `GET /api/token` | Coin, market, fee pot, next dive time, totals |
-| `GET /api/dives` | Dive history with claim, buy and burn signatures |
+| `GET /api/token` | Coin, market, fee pot, split, bucket totals, next dive time |
+| `GET /api/dives` | Dive history with claim, split, buy, airdrop and burn signatures |
 | `GET /api/chart` | Price candles plus the dives to plot on them |
 | `GET /api/trades` | Recent trades, engine buys flagged |
 | `GET /api/health` | Mode, scheduler state, next dive time |
@@ -126,12 +171,17 @@ plain SOL coin.
 
 ## Safety rules baked in
 
-- **Measured burns only.** The engine reads its token balance before the buy and burns the difference.
-  It never burns "everything in the wallet", so a dev bag or a transfer sitting in the creator wallet is
-  not touched. A burn that fails is recorded as owed and settled by the next dive.
+- **Only claimed fees are distributed.** SOL sent to the engine wallet by hand is never split or spent.
+  If the wallet is under its gas reserve, a claim tops the reserve up first.
+- **Earmarks are tracked.** What each bucket is owed is stored in the database, so a failed transfer or
+  a restart does not lose or double-spend a share.
+- **Measured disposal only.** The engine reads its token balance before the buy and only ever airdrops
+  or burns the difference. It never acts on "everything in the wallet", so tokens that were already
+  there are not touched.
+- **A failed airdrop burns.** Everything a buy returns is owed to the burn until the airdrop has actually
+  left the wallet. Tokens are never stranded in the engine wallet.
 - **Watch mode by default.** No key, no transactions.
-- **Kill switch.** `SCHEDULER_ENABLED=false` stops claims, buys and burns without taking the site down.
-- **Gas floor.** The engine refuses to fire below `MIN_GAS_SOL` and always keeps `GAS_RESERVE_SOL`.
+- **Kill switch.** `SCHEDULER_ENABLED=false` stops everything without taking the site down.
 - **No sell path.** There is no code that sells $SCRAP.
 
 ## Website

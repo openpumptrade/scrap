@@ -2,6 +2,7 @@ import {
   ComputeBudgetProgram,
   Connection,
   PublicKey,
+  SystemProgram,
   TransactionMessage,
   VersionedTransaction,
   LAMPORTS_PER_SOL,
@@ -85,3 +86,9 @@ export async function getUsdPrice(mint) {
   return priceCache.get(key)?.price || 0;
 }
 export const getSolUsd = () => getUsdPrice(WSOL_MINT);
+
+/// Send SOL to one or more wallets in a single transaction. `transfers`: [{ to, lamports }] (bigint lamports).
+export async function sendSol({ wallet, transfers }) {
+  const instructions = transfers.map((t) => SystemProgram.transfer({ fromPubkey: wallet.publicKey, toPubkey: new PublicKey(t.to), lamports: t.lamports }));
+  return sendTx({ instructions, payer: wallet.publicKey, signers: [wallet], computeUnits: 20_000 });
+}

@@ -6,6 +6,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddressSync,
   createBurnCheckedInstruction,
+  createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
 } from "@solana/spl-token";
 import { config } from "./config.js";
@@ -398,3 +399,55 @@ export async function simulateCreate({ mint, name, symbol, uri, payer, quote, ta
 }
 
 export { getBuyTokenAmountFromSolAmount, PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, canonicalPumpPoolPda, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction, BN };
+
+// ------------------------------------------------------------- holders + airdrop
+const SYSTEM_PROGRAM = "11111111111111111111111111111111";
+
+/// The largest real holders of `mint`: wallets owned by the system program (the curve, pools and other
+/// program-owned accounts are left out), each with an existing token account. `exclude` drops owners.
+export async function topHolders(mint, { exclude = [], limit = 20 } = {}) {
+  const mintPk = new PublicKey(mint);
+  let rows;
+  try {
+    const res = await fetch(`${FRONTEND}/coins/top-holders/${mint}`, { headers: UA, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`top-holders -> ${res.status}`);
+    const list = (await res.json()).topHolders || [];
+    if (!list.length) throw new Error("top-holders -> empty");
+    const programId = await mintProgramId(mint);
+    rows = list.map((h) => ({ owner: String(h.address), account: getAssociatedTokenAddressSync(mintPk, new PublicKey(h.address), true, programId).toBase58(), amountRaw: BigInt(Math.floor(Number(h.amount) * 10 ** DECIMALS)) })).filter((r) => r.amountRaw > 0n);
+    // the token account must exist on chain: a holder keeping the coin elsewhere is skipped
+    const accounts = await connection.getMultipleAccountsInfo(rows.map((r) => new PublicKey(r.account)));
+    rows = rows.filter((_, i) => accounts[i]);
+  } catch (err) {
+    console.warn(`[holders] pump.fun list unavailable (${String(err.message).slice(0, 80)}), asking the RPC`);
+    // every token account of the mint, straight from the token program (works on RPCs without getTokenLargestAccounts)
+    const programId = await mintProgramId(mint);
+    const list = await connection.getProgramAccounts(programId, { filters: [{ memcmp: { offset: 0, bytes: mintPk.toBase58() } }], dataSlice: { offset: 32, length: 77 } });
+    rows = list.map((a) => ({ account: a.pubkey.toBase58(), owner: new PublicKey(a.account.data.subarray(0, 32)).toBase58(), amountRaw: a.account.data.readBigUInt64LE(32), frozen: a.account.data[76] === 2 }))
+      .filter((r) => r.amountRaw > 0n && !r.frozen).sort((a, b) => (a.amountRaw > b.amountRaw ? -1 : a.amountRaw < b.amountRaw ? 1 : 0)).slice(0, 60);
+  }
+  if (!rows.length) return [];
+  const owners = await connection.getMultipleAccountsInfo(rows.map((r) => new PublicKey(r.owner)));
+  const skip = new Set(exclude.filter(Boolean));
+  return rows.filter((r, i) => !skip.has(r.owner) && (!owners[i] || owners[i].owner.toBase58() === SYSTEM_PROGRAM)).slice(0, limit);
+}
+
+/// Split `amountRaw` pro rata (by balance) between `holders` and send it, 8 transfers per transaction.
+/// Returns what actually left the wallet; a failed batch stops the loop and is reported.
+export async function airdropTokens({ wallet, mint, programId, amountRaw, holders }) {
+  const mintPk = new PublicKey(mint);
+  const from = getAssociatedTokenAddressSync(mintPk, wallet.publicKey, false, programId);
+  const total = holders.reduce((acc, h) => acc + h.amountRaw, 0n);
+  if (total === 0n || amountRaw <= 0n) return { sigs: [], sentRaw: 0n, recipients: 0, error: null };
+  const shares = holders.map((h) => ({ ...h, share: (amountRaw * h.amountRaw) / total })).filter((h) => h.share > 0n);
+  const sigs = []; let sentRaw = 0n, recipients = 0, error = null;
+  for (let i = 0; i < shares.length; i += 8) {
+    const batch = shares.slice(i, i + 8);
+    const instructions = batch.map((h) => createTransferCheckedInstruction(from, mintPk, new PublicKey(h.account), wallet.publicKey, h.share, DECIMALS, [], programId));
+    try {
+      sigs.push(await sendTx({ instructions, payer: wallet.publicKey, signers: [wallet], computeUnits: 40_000 * batch.length }));
+      sentRaw += batch.reduce((acc, h) => acc + h.share, 0n); recipients += batch.length;
+    } catch (err) { error = String(err.message).slice(0, 160); break; }
+  }
+  return { sigs, sentRaw, recipients, error };
+}

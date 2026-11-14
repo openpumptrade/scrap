@@ -25,6 +25,7 @@ export async function ensureSchema() {
     quote_usd double precision, price_usd double precision, sol_usd double precision, supply_after double precision,
     venue text, claim_tx text, buy_tx text, burn_tx text,
     note text, finished_at int)`;
+  for (const col of ["lp_quote double precision not null default 0", "treasury_quote double precision not null default 0", "tokens_airdropped double precision not null default 0", "airdrop_recipients int not null default 0", "split_tx text", "airdrop_tx text"]) await sql.unsafe(`alter table dives add column if not exists ${col}`);
   await sql`create index if not exists dives_ts on dives (ts)`;
   await sql`create table if not exists samples (ts int primary key, price_usd double precision not null, mcap_usd double precision not null, supply double precision)`;
 }
