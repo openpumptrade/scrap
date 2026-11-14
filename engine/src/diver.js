@@ -4,7 +4,7 @@ import { getSolBalance, getSolUsd, sendSol } from "./solana.js";
 import { allocate, splitBought } from "./split.js";
 import { startLiquidity, liquidityRound } from "./liquidity.js";
 import { communityTick } from "./community.js";
-import { distributeSharedFees, burnAmount, topHolders, airdropTokens, claimCreatorFees, curveBuy, pumpswapBuy, jupiterBuy, mintProgramId, tokenBalanceRaw, tokenBalanceRawSettled, totalSupply, isGraduated, creatorVaultBalancesRaw, quoteBalance, toRaw } from "./pumpfun.js";
+import { distributeSharedFees, burnAmount, closeEmptyTokenAccount, topHolders, airdropTokens, claimCreatorFees, curveBuy, pumpswapBuy, jupiterBuy, mintProgramId, tokenBalanceRaw, tokenBalanceRawSettled, totalSupply, isGraduated, creatorVaultBalancesRaw, quoteBalance, toRaw } from "./pumpfun.js";
 import { coin, pot, readPot } from "./tracker.js";
 
 /// The burner (SCRAP). Every DIVE_INTERVAL_SEC (3 minutes), on a fixed clock:
@@ -264,6 +264,14 @@ export async function runDive() {
       txs.burn = sig; burned = Number(amount) / 1e6;
       console.log(`[diver] burned ${burned.toLocaleString()} $${coin.symbol} · ${sig}`);
     }
+  }
+  // leave no token account behind: with everything airdropped or burned, the engine wallet stops being a holder
+  if (buyTx || burned > 0) {
+    try {
+      await new Promise((r) => setTimeout(r, 1500));
+      const sig = await closeEmptyTokenAccount({ wallet, mint: config.mint, programId });
+      if (sig) { txs.close = sig; console.log(`[diver] closed the empty token account · ${sig}`); }
+    } catch (err) { console.warn(`[diver] could not close the token account (${String(err.message).slice(0, 100)})`); }
   }
   const supplyAfter = await totalSupply(config.mint).catch(() => null);
   const solUsd = await getSolUsd();

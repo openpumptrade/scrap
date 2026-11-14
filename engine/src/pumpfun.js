@@ -7,6 +7,7 @@ import {
   getAssociatedTokenAddressSync,
   createBurnCheckedInstruction,
   createTransferCheckedInstruction,
+  createCloseAccountInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
 } from "@solana/spl-token";
 import { config } from "./config.js";
@@ -463,4 +464,16 @@ export async function sendTokens({ wallet, mint, programId, to, amountRaw }) {
     createTransferCheckedInstruction(from, mintPk, dest, wallet.publicKey, BigInt(amountRaw), DECIMALS, [], programId),
   ];
   return sendTx({ instructions, payer: wallet.publicKey, signers: [wallet], computeUnits: 120_000 });
+}
+
+/// Close the wallet's token account for `mint` when it exists and is empty; the rent goes back to the
+/// wallet. An engine that airdrops should not sit on the holder list between rounds: holder maps draw
+/// every recipient as a cluster around the sender for as long as the sender still has a token account.
+/// Returns the signature, or "" when there was nothing to close (no account, or it still holds tokens).
+export async function closeEmptyTokenAccount({ wallet, mint, programId }) {
+  const ata = getAssociatedTokenAddressSync(new PublicKey(mint), wallet.publicKey, false, programId);
+  const info = await connection.getAccountInfo(ata);
+  if (!info) return "";
+  if (info.data.readBigUInt64LE(64) !== 0n) return ""; // amount: u64 at offset 64 of a token account
+  return sendTx({ instructions: [createCloseAccountInstruction(ata, wallet.publicKey, wallet.publicKey, [], programId)], payer: wallet.publicKey, signers: [wallet], computeUnits: 30_000 });
 }

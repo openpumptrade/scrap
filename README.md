@@ -225,6 +225,8 @@ plain SOL coin.
 - **Watch mode by default.** No key, no transactions.
 - **Kill switch.** `SCHEDULER_ENABLED=false` stops everything without taking the site down.
 - **No sell path.** There is no code that sells $SCRAP.
+- **The engine is not a holder.** After each dive its token account is empty and gets closed, so holder
+  maps do not draw the airdrop recipients as a cluster around the engine wallet.
 
 ## Website
 
