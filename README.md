@@ -1,4 +1,4 @@
-<p align="center"><img src="logo.png" alt="SCRAP, a raccoon astronaut hugging a trash can" width="260"></p>
+<p align="center"><img src="logo.png" alt="SCRAP, an ASCII raccoon holding a SOL trash can" width="260"></p>
 
 <h1 align="center">$SCRAP · the Solana Trash Panda</h1>
 
@@ -64,7 +64,7 @@ No team cut, no ops share, no sell path. A pot too small to be worth a transacti
 
 ```
 index.html, *.png      the website (static, deployed as is)
-art/                   mascot source (SVG) and the pages that render logo.png / og.png
+art/                   the pages that render logo.png / og.png from the ASCII mascot
 engine/                the burn engine: Node 20+, Express, Postgres
   src/config.js        every setting, read from the environment
   src/diver.js         the dive: claim, one buy, measured burn
