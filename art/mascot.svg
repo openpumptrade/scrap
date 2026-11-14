@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <linearGradient id="sol" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#9945FF"/><stop offset=".55" stop-color="#5B8DEF"/><stop offset="1" stop-color="#14F195"/>
+    </linearGradient>
+    <linearGradient id="can" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b93a7"/><stop offset=".35" stop-color="#e6e9f2"/><stop offset=".7" stop-color="#aab1c4"/><stop offset="1" stop-color="#6d7488"/>
+    </linearGradient>
+    <linearGradient id="suit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe3ee"/>
+    </linearGradient>
+    <radialGradient id="glass" cx=".35" cy=".3" r=".8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/><stop offset=".6" stop-color="#c9b8ff" stop-opacity=".22"/><stop offset="1" stop-color="#7c5cff" stop-opacity=".3"/>
+    </radialGradient>
+    <radialGradient id="eye" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#e3c8ff"/><stop offset="1" stop-color="#9945FF"/>
+    </radialGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#14F195" stop-opacity=".9"/><stop offset="1" stop-color="#14F195" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sticker" x="-15%" y="-15%" width="130%" height="130%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="20" result="fat"/>
+      <feFlood flood-color="#ffffff"/><feComposite in2="fat" operator="in" result="white"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="25" result="fatter"/>
+      <feFlood flood-color="#17122b"/><feComposite in2="fatter" operator="in" result="edge"/>
+      <feGaussianBlur in="fatter" stdDeviation="14" result="blur"/>
+      <feOffset in="blur" dy="16" result="sh"/><feFlood flood-color="#17122b" flood-opacity=".28"/><feComposite in2="sh" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="edge"/><feMergeNode in="white"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(36 30) scale(.91)" filter="url(#sticker)" stroke="#17122b" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+    <!-- tail -->
+    <g transform="rotate(24 610 560)">
+      <path d="M560 600c60-10 130-70 150-150 12-48-34-70-58-30-26 44-60 90-112 110z" fill="#8a8f9c"/>
+      <path d="M652 420c14-22 46-18 56 6l-52 22z" fill="#2a2740"/>
+      <path d="M626 468l76-24c-2 20-10 40-22 58l-70-10z" fill="#2a2740"/>
+      <path d="M590 528l74 6c-16 20-36 38-58 50l-34-34z" fill="#2a2740"/>
+    </g>
+
+    <!-- backpack -->
+    <rect x="236" y="430" width="328" height="250" rx="60" fill="#b9bfd0"/>
+
+    <!-- legs -->
+    <path d="M300 640h86v84c0 20-16 34-36 34h-34c-20 0-34-14-34-34z" fill="url(#suit)"/>
+    <path d="M414 640h86l18 84c0 20-14 34-34 34h-34c-20 0-36-14-36-34z" fill="url(#suit)"/>
+    <path d="M282 724c0 20 14 34 34 34h34c20 0 36-14 36-34v-10H282z" fill="#9945FF"/>
+    <path d="M414 714v10c0 20 16 34 36 34h34c20 0 34-14 34-34v-10z" fill="#9945FF"/>
+
+    <!-- torso -->
+    <path d="M270 500c0-50 50-80 130-80s130 30 130 80v120c0 36-28 60-64 60H334c-36 0-64-24-64-60z" fill="url(#suit)"/>
+    <path d="M330 432c20-8 44-12 70-12s50 4 70 12l-14 34H344z" fill="#9945FF"/>
+
+    <!-- helmet ring -->
+    <ellipse cx="400" cy="424" rx="150" ry="34" fill="#cfd4e2"/>
+
+    <!-- ears -->
+    <path d="M258 196l-22-92 92 42z" fill="#8a8f9c"/><path d="M270 176l-12-44 44 20z" fill="#f4b8c8" stroke-width="6"/>
+    <path d="M542 196l22-92-92 42z" fill="#8a8f9c"/><path d="M530 176l12-44-44 20z" fill="#f4b8c8" stroke-width="6"/>
+
+    <!-- head -->
+    <path d="M400 120c104 0 186 62 186 150 0 76-70 140-186 140s-186-64-186-140c0-88 82-150 186-150z" fill="#a4a9b6"/>
+    <path d="M400 120c30 0 50 30 50 62h-100c0-32 20-62 50-62z" fill="#8a8f9c" stroke="none"/>
+    <!-- mask -->
+    <path d="M222 252c40-46 104-50 156-10 14 10 30 10 44 0 52-40 116-36 156 10-6 62-52 92-108 92-34 0-52-18-70-18s-36 18-70 18c-56 0-102-30-108-92z" fill="#2a2740"/>
+    <!-- muzzle -->
+    <path d="M400 306c46 0 78 26 78 58 0 30-34 46-78 46s-78-16-78-46c0-32 32-58 78-58z" fill="#ffffff"/>
+    <path d="M374 326h52c8 0 10 10 4 16l-22 20c-4 4-12 4-16 0l-22-20c-6-6-4-16 4-16z" fill="#17122b"/>
+    <path d="M400 364v14m0 0c-10 14-28 14-38 2m38-2c10 14 28 14 38 2" fill="none" stroke-width="7"/>
+    <!-- eyes: laser purple -->
+    <circle cx="312" cy="282" r="38" fill="url(#eye)"/><circle cx="488" cy="282" r="38" fill="url(#eye)"/>
+    <circle cx="312" cy="282" r="13" fill="#17122b" stroke="none"/><circle cx="488" cy="282" r="13" fill="#17122b" stroke="none"/>
+    <circle cx="302" cy="270" r="8" fill="#fff" stroke="none"/><circle cx="478" cy="270" r="8" fill="#fff" stroke="none"/>
+
+    <!-- helmet glass -->
+    <circle cx="400" cy="262" r="218" fill="url(#glass)" stroke-width="11"/>
+    <path d="M262 150c30-40 74-64 118-70" fill="none" stroke="#ffffff" stroke-width="16" stroke-opacity=".85"/>
+    <path d="M236 196c4-8 8-14 12-20" fill="none" stroke="#ffffff" stroke-width="16" stroke-opacity=".85"/>
+    <!-- antenna -->
+    <path d="M582 136l34-54" fill="none"/><circle cx="622" cy="72" r="17" fill="#14F195"/>
+
+    <!-- trash can -->
+    <ellipse cx="400" cy="610" rx="150" ry="70" fill="url(#glow)" stroke="none"/>
+    <path d="M306 506h188l-16 170c-2 16-14 26-30 26H352c-16 0-28-10-30-26z" fill="url(#can)"/>
+    <path d="M340 530l8 150M400 530v150M460 530l-8 150" fill="none" stroke-width="6" stroke-opacity=".45"/>
+    <path d="M322 574h156l-2 26H324zM326 622h148l-2 26H328z" fill="url(#sol)" stroke-width="6"/>
+    <rect x="286" y="476" width="228" height="38" rx="16" fill="url(#can)"/>
+    <rect x="366" y="452" width="68" height="28" rx="12" fill="#8b93a7"/>
+
+    <!-- arms + gloves hugging the can -->
+    <path d="M270 500c-44 20-54 80-30 122 10 16 34 18 46 4l30-36c-22-14-26-44-10-70z" fill="url(#suit)"/>
+    <path d="M530 500c44 20 54 80 30 122-10 16-34 18-46 4l-30-36c22-14 26-44 10-70z" fill="url(#suit)"/>
+    <circle cx="300" cy="604" r="34" fill="#14F195"/><circle cx="500" cy="604" r="34" fill="#14F195"/>
+  </g>
+</svg>

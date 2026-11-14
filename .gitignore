@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.*
+!.env.example
+.vercel
+.railway
+.tek.json
+.claude
+.DS_Store

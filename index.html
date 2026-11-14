@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>$SCRAP · the Solana Trash Panda</title>
+<meta name="description" content="An AI was asked what memecoin it would launch on Solana. It answered $SCRAP. Every 3 minutes the engine claims the creator fees, buys $SCRAP and burns it. Open source.">
+<meta property="og:title" content="$SCRAP · the Solana Trash Panda">
+<meta property="og:description" content="One degen's trash is another degen's treasury. Fees in, $SCRAP burned, every 3 minutes.">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="og.png">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff; --panel: #f5f4fa; --line: #e9e7f1; --line2: #d9d6e6;
+    --text: #110e1f; --ink2: #2c2840; --mute: #6b6880; --mute2: #9f9cb3;
+    --violet: #7c3aed; --violet-h: #6427d6; --violet-soft: #efe8ff; --deep: #130b2e; --deep2: #1d1145;
+    --mint: #14f195; --mint-soft: #dcfdee; --green: #0b8a55;
+    --sol: linear-gradient(100deg, #9945ff 0%, #5b8def 55%, #14f195 100%);
+    --r-xl: 32px; --r-lg: 24px; --r-md: 18px; --r-sm: 12px;
+    --sh-1: 0 1px 2px rgba(20,12,50,.06), 0 1px 3px rgba(20,12,50,.07); --sh-2: 0 18px 40px -18px rgba(20,12,50,.28); --sh-3: 0 40px 80px -40px rgba(60,20,160,.45);
+    --pad: clamp(16px, 3.4vw, 32px); --ease: cubic-bezier(.2,.8,.2,1);
+    --head: "Poppins", "Inter", system-ui, sans-serif; --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 400 16px/1.55 var(--body); -webkit-font-smoothing: antialiased; overflow-x: clip; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  ::selection { background: var(--mint); color: var(--deep); }
+  h1, h2, h3 { font-family: var(--head); font-weight: 600; margin: 0; letter-spacing: -.03em; line-height: 1.08; }
+  h1 { font-size: clamp(40px, 5.2vw, 72px); line-height: 1.03; letter-spacing: -.04em; }
+  h2 { font-size: clamp(30px, 3.6vw, 50px); letter-spacing: -.035em; }
+  h3 { font-size: 20px; line-height: 1.2; letter-spacing: -.02em; }
+  p { margin: 0; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--pad); }
+  .mono { font-family: var(--mono); }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .mk { background: var(--sol); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { font-size: 18px; color: var(--mute); margin-top: 16px; max-width: 56ch; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; font: 600 12px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--violet); }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--violet); }
+  .kicker { display: inline-flex; align-items: center; gap: 9px; padding: 8px 14px 8px 11px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font: 500 13px/1 var(--body); color: var(--ink2); box-shadow: var(--sh-1); }
+  .kicker i { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: ping 2s infinite; }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.45); } 70% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); } }
+  .tag { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 11px; font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; background: var(--panel); color: var(--ink2); border: 1px solid var(--line); white-space: nowrap; }
+  .tag.live { background: var(--mint-soft); color: var(--green); border-color: #b5f3d6; }
+  .tag.plan { background: var(--violet-soft); color: var(--violet-h); border-color: #dccbff; }
+  .tag.na { background: #fff; color: var(--mute); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 22px; border-radius: 999px; border: 1px solid transparent; background: var(--panel); color: var(--text); font: 600 15px/1 var(--body); letter-spacing: -.01em; white-space: nowrap; transition: transform .15s var(--ease), background .15s, border-color .15s; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.primary { background: var(--violet); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 10px 20px -10px rgba(124,58,237,.75); }
+  .btn.primary:hover { background: var(--violet-h); }
+  .btn.white { background: #fff; border-color: var(--line2); box-shadow: var(--sh-1); }
+  .btn.ink { background: var(--text); color: #fff; }
+  .btn.sm { height: 40px; padding: 0 16px; font-size: 14px; }
+
+  /* nav: floating pills */
+  .nav { position: fixed; top: 14px; left: 14px; right: 14px; z-index: 50; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; pointer-events: none; }
+  .nav > * { pointer-events: auto; background: rgba(255,255,255,.8); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); border: 1px solid rgba(17,14,31,.08); border-radius: 999px; box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 14px 34px -16px rgba(20,12,50,.24); display: flex; align-items: center; height: 60px; padding: 0 7px; }
+  .nav .l { justify-self: start; } .nav .r { justify-self: end; gap: 6px; }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 0 14px 0 4px; font: 600 17px/1 var(--head); letter-spacing: -.02em; }
+  .brand img { width: 44px; height: 44px; border-radius: 50%; }
+  .tabs a { padding: 10px 16px; border-radius: 999px; font: 500 14px/1 var(--body); color: var(--mute); transition: color .2s, background .2s; white-space: nowrap; }
+  .tabs a:hover { color: var(--text); background: #fff; }
+
+  /* hero */
+  .hero { position: relative; padding: clamp(118px, 15vh, 150px) 0 0; isolation: isolate; }
+  .hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 620px; z-index: -1; background: radial-gradient(60% 60% at 80% 10%, rgba(20,241,149,.16), transparent 70%), radial-gradient(50% 60% at 10% 0%, rgba(153,69,255,.16), transparent 70%); }
+  .h-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+  .h-copy .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+  .cabar { display: flex; align-items: center; gap: 10px; margin-top: 22px; padding: 7px 7px 7px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line2); box-shadow: var(--sh-1); max-width: 560px; }
+  .cabar .lbl { font: 600 11px/1 var(--mono); letter-spacing: .08em; color: var(--violet); text-transform: uppercase; flex: none; }
+  .cabar .ca { flex: 1; min-width: 0; font: 500 13px/1 var(--mono); color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+
+  /* stage: the dumpster in orbit */
+  .stage { position: relative; border-radius: var(--r-xl); background: radial-gradient(120% 90% at 50% 0%, #3a1c8c 0%, var(--deep2) 45%, var(--deep) 100%); box-shadow: var(--sh-3); overflow: hidden; aspect-ratio: 1 / 1.02; color: #fff; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .stage .mascot { position: absolute; left: 50%; bottom: 12%; width: 80%; transform: translateX(-50%); animation: float 5s ease-in-out infinite; filter: drop-shadow(0 30px 40px rgba(0,0,0,.45)); }
+  .stage .mascot.gulp { animation: gulp .5s var(--ease); }
+  @keyframes float { 0%, 100% { transform: translate(-50%, 0) rotate(-1.5deg); } 50% { transform: translate(-50%, -14px) rotate(1.5deg); } }
+  @keyframes gulp { 0% { transform: translate(-50%, 0) scale(1); } 40% { transform: translate(-50%, 6px) scale(1.05, .95); } 100% { transform: translate(-50%, 0) scale(1); } }
+  .stage .top { position: absolute; left: 16px; right: 16px; top: 16px; display: flex; justify-content: space-between; gap: 8px; z-index: 2; }
+  .glass { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font: 500 12px/1 var(--mono); letter-spacing: .04em; white-space: nowrap; }
+  .glass i { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+  .stage .clock { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 2; display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 20px; background: rgba(12,6,32,.6); border: 1px solid rgba(255,255,255,.14); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .clock .t { font: 600 30px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .clock .c { flex: 1; min-width: 0; }
+  .clock .c small { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.62); margin-bottom: 8px; }
+  .bar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--sol); transition: width 1s linear; }
+  .clock button { height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--mint); color: var(--deep); font: 600 13px/1 var(--body); }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: clamp(28px, 4vw, 48px); }
+  .stat { padding: 20px; border-radius: var(--r-lg); background: #fff; border: 1px solid var(--line); }
+  .stat small { display: block; font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+  .stat b { display: block; margin-top: 12px; font: 600 clamp(26px, 2.8vw, 36px)/1 var(--head); letter-spacing: -.03em; }
+  .stat span { display: block; margin-top: 8px; font-size: 13px; color: var(--mute); }
+
+  .sec { padding: clamp(64px, 9vw, 112px) 0 0; }
+  .sec-head { max-width: 760px; margin-bottom: clamp(26px, 3.4vw, 42px); }
+
+  /* origin: the prompt */
+  .origin { display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(20px, 3vw, 40px); align-items: start; }
+  .chat { border-radius: var(--r-xl); background: #0b0a10; color: #f1f0f6; padding: clamp(18px, 2.4vw, 28px); box-shadow: var(--sh-2); font-size: 15px; }
+  .chat .q { margin-left: auto; width: fit-content; max-width: 90%; padding: 12px 16px; border-radius: 14px; background: #1c1b24; }
+  .chat .a { margin-top: 22px; display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+  .chat .a .av { width: 30px; height: 30px; border-radius: 8px; background: var(--sol); }
+  .chat .a small { display: block; color: #8d8a9c; margin-bottom: 6px; }
+  .chat pre { margin: 14px 0; padding: 16px; border-radius: 12px; background: #15141c; font: 500 13px/1.35 var(--mono); color: #d9d6ea; overflow-x: auto; }
+  .chat pre b { color: var(--mint); font-weight: 600; } .chat pre em { color: #b58cff; font-style: normal; }
+  .chat .typed::after { content: ""; display: inline-block; width: 8px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--mint); animation: caret 1s steps(2) infinite; }
+  @keyframes caret { to { opacity: 0; } }
+  .origin .notes { display: grid; gap: 12px; }
+  .note { padding: 22px; border-radius: var(--r-lg); border: 1px solid var(--line); background: #fff; }
+  .note p { color: var(--mute); margin-top: 8px; font-size: 15px; }
+
+  /* steps */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .step { position: relative; padding: 24px 22px 26px; border-radius: var(--r-lg); background: var(--panel); overflow: hidden; }
+  .step .n { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #fff; border: 1px solid var(--line2); font: 600 14px/1 var(--mono); color: var(--violet); margin-bottom: 44px; }
+  .step p { color: var(--mute); margin-top: 10px; font-size: 15px; }
+  .step:last-child { background: var(--deep); color: #fff; } .step:last-child p { color: rgba(255,255,255,.7); } .step:last-child .n { background: var(--mint); border-color: var(--mint); color: var(--deep); }
+  .step .arrow { position: absolute; right: 18px; top: 30px; font: 500 18px/1 var(--mono); color: var(--mute2); }
+
+  /* spec table */
+  .spec { border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  .row { display: grid; grid-template-columns: 1.1fr 1.6fr 116px; gap: 16px; align-items: center; padding: 18px 22px; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; } .row .tag { justify-self: end; }
+  section[id] { scroll-margin-top: 84px; }
+  .row b { font: 600 16px/1.3 var(--head); letter-spacing: -.01em; }
+  .row p { color: var(--mute); font-size: 15px; }
+
+  /* log */
+  .log { border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  .log .lr { display: grid; grid-template-columns: 70px 1fr auto auto; gap: 14px; align-items: center; padding: 14px 20px; border-top: 1px solid var(--line); font-size: 14px; }
+  .log .lr:first-child { border-top: 0; }
+  .log .lr a { color: var(--violet); font: 500 12px/1 var(--mono); }
+  .log .empty { padding: 36px 22px; text-align: center; color: var(--mute); }
+
+  /* faq */
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  details { border: 1px solid var(--line); border-radius: var(--r-md); padding: 0 22px; background: #fff; }
+  summary { list-style: none; cursor: pointer; padding: 20px 0; font: 600 17px/1.3 var(--head); letter-spacing: -.01em; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font: 400 22px/1 var(--mono); color: var(--violet); transition: transform .25s var(--ease); }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { color: var(--mute); padding: 0 0 20px; max-width: 70ch; }
+  code { font: 500 13px/1 var(--mono); background: var(--panel); padding: 3px 6px; border-radius: 6px; }
+
+  .cta { margin-top: clamp(64px, 9vw, 112px); border-radius: var(--r-xl); background: var(--deep); color: #fff; padding: clamp(28px, 5vw, 64px); display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; position: relative; overflow: hidden; }
+  .cta::before { content: ""; position: absolute; inset: 0; background: radial-gradient(50% 120% at 100% 0%, rgba(20,241,149,.25), transparent 60%), radial-gradient(40% 120% at 0% 100%, rgba(153,69,255,.4), transparent 60%); }
+  .cta > * { position: relative; }
+  .cta p { color: rgba(255,255,255,.7); margin-top: 12px; max-width: 50ch; }
+  footer { padding: 34px 0 44px; color: var(--mute); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  footer a:hover { color: var(--text); }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; background: var(--text); color: #fff; padding: 12px 18px; border-radius: 999px; font: 500 14px/1 var(--body); z-index: 60; transition: opacity .2s, transform .2s var(--ease); pointer-events: none; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  /* reveal on scroll */
+  .rv { opacity: 0; transform: translateY(18px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+  .rv.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } .stage .mascot { animation: none; } }
+
+  @media (max-width: 980px) {
+    .nav { grid-template-columns: auto 1fr; } .nav .tabs { display: none; }
+    .h-grid, .origin { grid-template-columns: 1fr; }
+    .stage { max-width: 560px; width: 100%; margin: 0 auto; }
+    .stats, .steps { grid-template-columns: 1fr 1fr; }
+    .step .arrow { display: none; }
+  }
+  @media (max-width: 600px) {
+    .nav { top: 10px; left: 10px; right: 10px; } .nav > * { height: 54px; } .brand img { width: 38px; height: 38px; }
+    .nav .r .gh { display: none; }
+    .steps { grid-template-columns: 1fr; } .step .n { margin-bottom: 20px; }
+    .row { grid-template-columns: 1fr; gap: 8px; } .row .tag { justify-self: start; }
+    .log .lr { grid-template-columns: 50px 1fr auto; } .log .lr .hide-s { display: none; }
+    .clock .t { font-size: 24px; } .stage .top .glass:last-child { display: none; }
+    .chat pre { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="l"><a class="brand" href="#top"><img src="favicon.png" alt=""><span>$SCRAP</span></a></div>
+  <nav class="tabs"><a href="#origin">Origin</a><a href="#how">How it works</a><a href="#spec">Spec</a><a href="#log">Dive log</a><a href="#faq">FAQ</a></nav>
+  <div class="r"><a class="btn white sm gh" id="gh" href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a><a class="btn primary sm" id="navbuy" href="https://pump.fun" target="_blank" rel="noopener">Buy $SCRAP</a></div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div class="h-grid">
+      <div class="h-copy">
+        <span class="kicker"><i></i>Solana · pump.fun · open source</span>
+        <h1 style="margin-top:22px">One degen's trash is another degen's <span class="mk">treasury.</span></h1>
+        <p class="sub">We asked an AI what memecoin it would launch on Solana. It answered <b>$SCRAP, the Solana Trash Panda</b>: a raccoon astronaut that digs through the dumpster and burns what it finds. So we built the dumpster. Every 3 minutes the creator fees buy $SCRAP and burn it.</p>
+        <div class="cabar"><span class="lbl">CA</span><span class="ca" id="ca" title="Copy the contract address">coming soon</span><button class="btn ink sm" id="copy">Copy</button></div>
+        <div class="btns"><a class="btn primary" id="herobuy" href="https://pump.fun" target="_blank" rel="noopener">Buy on pump.fun</a><a class="btn white" href="#how">How it works</a><a class="btn white" id="x" href="https://x.com" target="_blank" rel="noopener">X</a></div>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="space"></canvas>
+        <div class="top"><span class="glass"><i></i><span id="status">engine warming up</span></span><span class="glass">fees → buy → burn</span></div>
+        <img class="mascot" id="mascot" src="mascot.png" alt="SCRAP, a raccoon astronaut hugging a trash can">
+        <div class="clock"><div class="t" id="k-next">-:--</div><div class="c"><small>next dumpster dive</small><div class="bar"><i id="bar"></i></div></div><button id="feed">Feed</button></div>
+      </div>
+    </div>
+    <div class="stats rv">
+      <div class="stat"><small>Dives</small><b class="num" id="k-dives">0</b><span>claim, buy, burn</span></div>
+      <div class="stat"><small>$SCRAP burned</small><b class="num" id="k-burned">0</b><span id="k-pct">gone from supply for good</span></div>
+      <div class="stat"><small>Tax</small><b>0%</b><span>plain SOL pair, no transfer tax</span></div>
+      <div class="stat"><small>Team cut of fees</small><b>0%</b><span>100% of creator fees burn</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="origin">
+  <div class="wrap">
+    <div class="sec-head rv"><span class="eyebrow">Origin</span><h2>The whitepaper is one chat message.</h2><p class="sub">Nobody on the team designed this coin. The prompt was two short lines. The answer was a full brief: name, mascot, tagline, tokenomics.</p></div>
+    <div class="origin">
+      <div class="chat rv">
+        <div class="q">If you could launch a meme coin on Solana, what would it be like? And throw in a picture too.</div>
+        <div class="a"><span class="av"></span><div>
+          <small>Reasoning</small>
+          I'd launch <b>$SCRAP, the Solana Trash Panda.</b>
+<pre>    /\_/\      <em>&lt;- laser eyes: ON</em>
+   ( o.o )         <b>$SCRAP</b>
+    &gt; ^ &lt;
+   /  |  \      holding a glowing
+  /___|___\     Solana validator trash can
+    [SOL]         <em>(neon purple/green)</em>
+   /     \
+  /_/   \_\</pre>
+          <span class="typed">"One degen's trash is another degen's treasury."</span>
+        </div></div>
+      </div>
+      <div class="notes">
+        <div class="note rv"><h3>The mascot</h3><p>A raccoon astronaut with purple laser eyes, hugging a glowing validator trash can. The ASCII sketch came first. The sticker on this page is drawn from it.</p></div>
+        <div class="note rv"><h3>The rule set</h3><p>1,000,000,000 supply. 0% tax. Mint and freeze authority revoked. No presale, no VC, no "trust me bro" roadmap. Just memes and transparent burns.</p></div>
+        <div class="note rv"><h3>What we added</h3><p>A working engine. The brief asked for transparent burns, so the burns are a program anyone can read: it claims the creator fees, buys $SCRAP and burns what it bought.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="how">
+  <div class="wrap">
+    <div class="sec-head rv"><span class="eyebrow">How it works</span><h2>Fees go in the can. Supply comes out smaller.</h2><p class="sub">No staking, no claiming, nothing to sign. Holding is the whole job.</p></div>
+    <div class="steps">
+      <div class="step rv"><span class="n">1</span><span class="arrow">→</span><h3>Trades pay fees</h3><p>Every buy and sell of $SCRAP pays pump.fun creator fees, on the bonding curve and on PumpSwap after graduation.</p></div>
+      <div class="step rv"><span class="n">2</span><span class="arrow">→</span><h3>Every 3 minutes</h3><p>The engine claims all of the fees that piled up. Dust rolls into the next dive instead of wasting a transaction.</p></div>
+      <div class="step rv"><span class="n">3</span><span class="arrow">→</span><h3>One market buy</h3><p>All of it goes into a single buy of $SCRAP on whichever venue the coin trades on: curve, PumpSwap, or Jupiter as a fallback.</p></div>
+      <div class="step rv"><span class="n">4</span><h3>Burned</h3><p>Exactly what that buy brought in is burned on-chain. The engine never sells and never touches tokens it did not buy.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="spec">
+  <div class="wrap">
+    <div class="sec-head rv"><span class="eyebrow">Spec vs. shipped</span><h2>What the AI asked for, and where it stands.</h2><p class="sub">The brief had more ideas than a launch day can hold. This is the honest list.</p></div>
+    <div class="spec rv">
+      <div class="row"><b>1B supply, 0% tax</b><p>Standard pump.fun coin paired with SOL. No transfer tax, no custom pair.</p><span class="tag live">At launch</span></div>
+      <div class="row"><b>Mint and freeze revoked</b><p>pump.fun coins ship with both authorities revoked. Nobody can mint more or freeze a wallet.</p><span class="tag live">At launch</span></div>
+      <div class="row"><b>No presale, no VC</b><p>Fair launch on the bonding curve. Everyone buys from the same curve, the dev included.</p><span class="tag live">At launch</span></div>
+      <div class="row"><b>Transparent burns</b><p>The burn vault in the brief became the engine: 100% of creator fees buy and burn $SCRAP, every transaction linked in the dive log.</p><span class="tag live">Engine</span></div>
+      <div class="row"><b>50 / 20 / 20 / 10 split</b><p>The mock allocation (LP, airdrop, treasury, burn vault) does not exist on a fair launch. There is no allocation to split.</p><span class="tag na">Dropped</span></div>
+      <div class="row"><b>Recycle a rug</b><p>Holders submit failed memecoin charts, the community roasts them, best roast wins $SCRAP.</p><span class="tag plan">Community</span></div>
+      <div class="row"><b>Weekly Dumpster Dive vote</b><p>Holders vote on burning more or donating a slice to animal shelters. Needs a treasury first.</p><span class="tag plan">Later</span></div>
+      <div class="row"><b>Scrap Badge</b><p>A compressed NFT badge for dumpster-dive streaks.</p><span class="tag plan">Later</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="log">
+  <div class="wrap">
+    <div class="sec-head rv"><span class="eyebrow">Dive log</span><h2>Every dive, on-chain.</h2><p class="sub">Each row is one cycle of the engine with its buy and burn transactions.</p></div>
+    <div class="log rv" id="dives"><div class="empty">The engine is not live yet. The first dive shows up here once $SCRAP launches.</div></div>
+  </div>
+</section>
+
+<section class="sec" id="faq">
+  <div class="wrap">
+    <div class="sec-head rv"><span class="eyebrow">FAQ</span><h2>Questions from the dumpster.</h2></div>
+    <div class="faq">
+      <details class="rv"><summary>Did an AI really come up with this?</summary><p>Yes. The name, the mascot, the tagline and the rule set come from a single AI answer to a single prompt. Humans drew the sticker, wrote the engine and pressed launch.</p></details>
+      <details class="rv"><summary>Where do the burned tokens come from?</summary><p>From the market. The engine claims the pump.fun creator fees, spends them on one buy of $SCRAP and burns the tokens that buy returned. Nothing is burned from a pre-minted stash.</p></details>
+      <details class="rv"><summary>Can the engine sell or rug?</summary><p>The engine has no sell path. The code is public, so you can check: it claims, buys and burns. It only burns the difference between its balance before and after its own buy.</p></details>
+      <details class="rv"><summary>What happens when volume is low?</summary><p>Small pots roll over. If the fees are under the minimum, the dive is skipped and the fees wait for the next one. Burns scale with volume, there is no fixed promise.</p></details>
+      <details class="rv"><summary>Can I run the engine for my own coin?</summary><p>Yes. Clone the repo, set <code>TOKEN_MINT</code> and a wallet key in <code>engine/.env</code> and start it. Without a key it runs in watch mode and only simulates.</p></details>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="cta rv">
+    <div><h2>Take out the trash.</h2><p>$SCRAP is a memecoin with no intrinsic value and no promise of return. Read the code, then decide.</p></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" id="fbuy" href="https://pump.fun" target="_blank" rel="noopener">Buy on pump.fun</a><a class="btn white" href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">Read the code</a></div>
+  </div>
+</div>
+</main>
+
+<footer><div class="wrap"><span>$SCRAP · the Solana Trash Panda · not financial advice</span><span><a href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a> · <a id="fx" href="https://x.com" target="_blank" rel="noopener">X</a></span></div></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- config: set the CA and the X link when the coin is live ----
+const CONFIG = { ca: "", x: "", cycleSec: 180 };
+
+const $ = (id) => document.getElementById(id);
+function setCa(ca) {
+  CONFIG.ca = ca; $("ca").textContent = ca;
+  ["navbuy", "herobuy", "fbuy"].forEach((i) => ($(i).href = "https://pump.fun/coin/" + ca));
+}
+if (CONFIG.ca) setCa(CONFIG.ca);
+if (CONFIG.x) ["x", "fx"].forEach((i) => ($(i).href = CONFIG.x));
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 1800); }
+$("copy").onclick = $("ca").onclick = () => {
+  if (!CONFIG.ca) return toast("The CA drops at launch");
+  navigator.clipboard?.writeText(CONFIG.ca).then(() => toast("CA copied"), () => toast(CONFIG.ca));
+};
+
+// ---- reveal on scroll ----
+const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.12 });
+document.querySelectorAll(".rv").forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + "ms"; io.observe(el); });
+
+// ---- clock: the engine's own schedule when it is live, the 3-minute wall clock before that ----
+let engineNext = 0, lastCycle = Math.floor(Date.now() / 1000 / CONFIG.cycleSec);
+function tick() {
+  const now = Date.now() / 1000, c = CONFIG.cycleSec;
+  const left = engineNext > now ? Math.min(c, Math.ceil(engineNext - now)) : (Math.ceil(c - (now % c)) % c || c);
+  $("k-next").textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+  $("bar").style.width = 100 * (1 - left / c) + "%";
+  const cyc = Math.floor(now / c);
+  if (cyc !== lastCycle) { lastCycle = cyc; if (!engineNext) dive(); } // a live engine triggers its own dives
+}
+setInterval(tick, 1000); tick();
+
+// ---- live engine: /api/token and /api/dives (same origin on the engine host, proxied on the static site) ----
+const fmt = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(Math.round(n)));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sigOk = (s) => /^[1-9A-HJ-NP-Za-km-z]{60,90}$/.test(String(s || ""));
+let lastDives = null;
+async function poll() {
+  try {
+    const r = await fetch("/api/token", { cache: "no-store" });
+    if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) return;
+    const d = await r.json();
+    if (d.mint && !CONFIG.ca) setCa(d.mint);
+    if (!d.started) return;
+    const live = !d.dryRun;
+    $("status").textContent = live ? "engine live" : "engine in watch mode";
+    const dives = live ? d.divesRun : 0, burned = live ? d.totalBurned : 0;
+    $("k-dives").textContent = dives.toLocaleString();
+    $("k-burned").textContent = fmt(burned);
+    if (live && d.burnedPct > 0) $("k-pct").textContent = (d.burnedPct * 100).toFixed(3) + "% of supply, gone for good";
+    if (d.nextDiveAt) engineNext = d.nextDiveAt;
+    if (lastDives !== null && dives > lastDives) dive();
+    lastDives = dives;
+    if (live) loadLog();
+  } catch {}
+}
+async function loadLog() {
+  try {
+    const r = await fetch("/api/dives?limit=12", { cache: "no-store" });
+    if (!r.ok) return;
+    const rows = (await r.json()).filter((x) => !x.dry && x.status === "done");
+    if (!rows.length) return;
+    $("dives").innerHTML = rows.map((x) => {
+      const when = new Date(x.t * 1000).toISOString().slice(5, 16).replace("T", " ");
+      const link = (sig, label) => (sigOk(sig) ? `<a href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">${label} ↗</a>` : "");
+      return `<div class="lr"><span class="num" style="color:var(--mute)">#${Number(x.id)}</span><span><b>${esc(fmt(Number(x.tokensBurned) || 0))} $SCRAP</b> burned <span style="color:var(--mute)">· ${esc(when)} UTC</span></span><span class="hide-s">${link(x.buyTx, "buy")}</span><span>${link(x.burnTx, "burn")}</span></div>`;
+    }).join("");
+  } catch {}
+}
+poll(); setInterval(poll, 10000);
+
+// ---- the stage: fee coins fall into the can, burned $SCRAP rises as sparks ----
+const cv = $("space"), g = cv.getContext("2d"), stage = $("stage");
+let W = 0, H = 0, stars = [], coins = [], sparks = [], glow = 0;
+function size() {
+  const r = stage.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  stars = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + 0.3, p: Math.random() * 6.28 }));
+}
+new ResizeObserver(size).observe(stage); size();
+const can = () => ({ x: W / 2, y: H * 0.60 });
+function dive() {
+  for (let i = 0; i < 12; i++) coins.push({ x: W * (0.15 + Math.random() * 0.7), y: -20 - Math.random() * H * 0.5, vx: 0, vy: 1.5 + Math.random() * 1.5, r: 9 + Math.random() * 5 });
+}
+$("feed").onclick = () => { dive(); toast("Preview only. The real dive runs on the clock."); };
+function frame(t) {
+  g.clearRect(0, 0, W, H);
+  for (const s of stars) { g.globalAlpha = 0.35 + 0.45 * Math.sin(t / 900 + s.p); g.fillStyle = "#fff"; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.28); g.fill(); }
+  g.globalAlpha = 1;
+  const c = can();
+  if (glow > 0) {
+    const gr = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, W * 0.5);
+    gr.addColorStop(0, `rgba(20,241,149,${0.5 * glow})`); gr.addColorStop(1, "rgba(20,241,149,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, W, H); glow = Math.max(0, glow - 0.02);
+  }
+  for (const k of coins) {
+    k.vx += (c.x - k.x) * 0.0016; k.vy += 0.06; k.x += k.vx; k.y += k.vy;
+    g.fillStyle = "#14f195"; g.beginPath(); g.arc(k.x, k.y, k.r, 0, 6.28); g.fill();
+    g.fillStyle = "#130b2e"; g.font = `600 ${k.r}px Inter, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("◎", k.x, k.y + 1);
+    if (k.y > c.y) {
+      k.dead = true; glow = 1;
+      $("mascot").classList.remove("gulp"); void $("mascot").offsetWidth; $("mascot").classList.add("gulp");
+      for (let i = 0; i < 9; i++) sparks.push({ x: c.x + (Math.random() - 0.5) * W * 0.2, y: c.y, vx: (Math.random() - 0.5) * 2.4, vy: -1.5 - Math.random() * 3, life: 1, hue: Math.random() < 0.5 ? "#b58cff" : "#14f195" });
+    }
+  }
+  coins = coins.filter((k) => !k.dead);
+  for (const s of sparks) { s.x += s.vx; s.y += s.vy; s.vy += 0.015; s.life -= 0.012; g.globalAlpha = Math.max(0, s.life); g.fillStyle = s.hue; g.beginPath(); g.arc(s.x, s.y, 2.6, 0, 6.28); g.fill(); }
+  g.globalAlpha = 1; sparks = sparks.filter((s) => s.life > 0);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+setTimeout(dive, 1200);
+</script>
+</body>
+</html>
