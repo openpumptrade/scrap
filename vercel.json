@@ -1,3 +1,4 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/api/:path*", "destination": "https://engine-production-675a93b4.up.railway.app/api/:path*" }]
 }

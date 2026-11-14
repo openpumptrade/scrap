@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import { config, mode } from "./config.js";
 import { sql } from "./db.js";
 import { coin, pot, engineWallet } from "./tracker.js";
@@ -23,8 +24,15 @@ export const live = { started: false };
 export function startApi() {
   const app = express();
   app.use(cors());
+  app.use(compression());
   app.set("etag", false);
-  app.use("/api", (_req, res, next) => { res.set("cache-control", "no-store"); next(); });
+  // Short edge cache: a proxy in front (s-maxage) answers many viewers with one origin fetch.
+  const EDGE_TTL = { "/token": 5, "/trades": 10, "/dives": 20, "/chart": 15 };
+  app.use("/api", (req, res, next) => {
+    const ttl = EDGE_TTL[req.path];
+    res.set("cache-control", ttl ? `public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl * 4}` : "no-store");
+    next();
+  });
 
   app.get("/api/health", (_req, res) => res.json({ ok: true, mode: mode(), scheduler: config.schedulerEnabled, started: live.started, coin: coin.symbol, quote: coin.quote?.symbol || null, taxBps: coin.taxBps, nextDiveAt: state.nextDiveAt }));
 

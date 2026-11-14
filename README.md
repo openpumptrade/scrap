@@ -5,7 +5,7 @@
 <p align="center"><i>One degen's trash is another degen's treasury.</i></p>
 
 <p align="center">
-  <a href="https://scrap-plum-nine.vercel.app">Website</a> ·
+  <a href="https://solanatrashpanda.fun">Website</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#run-the-engine">Run the engine</a> ·
   <a href="#safety-rules-baked-in">Safety rules</a>
