@@ -224,8 +224,10 @@ async function load(fresh) {
     const left = Math.max(0, d.endsAt - Math.floor(Date.now() / 1000)), days = Math.floor(left / 86400), hrs = Math.floor((left % 86400) / 3600), mins = Math.floor((left % 3600) / 60);
     const closes = "closes in " + (days ? days + "d " : "") + hrs + "h " + mins + "m";
     $("week").textContent = "week " + d.week + " · " + closes;
-    $("d-ends").textContent = (d.voteSliceBps / 100) + "% of the treasury · " + closes;
-    $("r-prize").textContent = "prize: " + (d.prizeBps / 100) + "% of the treasury, paid in $SCRAP";
+    const t = d.treasury, s3 = (n) => (n >= 1 ? n.toFixed(2) : n.toFixed(3));
+    $("d-ends").textContent = (d.voteSliceBps / 100) + "% of the treasury" + (t ? " (" + s3(t.voteSol) + " SOL right now)" : "") + " · " + closes;
+    $("r-prize").textContent = "prize: " + (d.prizeBps / 100) + "% of the treasury" + (t ? " (" + s3(t.prizeSol) + " SOL right now)" : "") + ", paid in $SCRAP";
+    if (t) $("d-desc").textContent = "The treasury holds " + s3(t.sol) + " SOL. Holders vote on a slice of it: burn more $SCRAP, or donate it to animal shelters. The amounts move with the treasury until the week closes.";
     $("p-donate").textContent = d.donationWallet ? "The slice is sent to the shelter wallet " + d.donationWallet.slice(0, 4) + "..." + d.donationWallet.slice(-4) + "." : "The slice is set aside for an animal shelter. No shelter wallet is set yet, so it waits in the treasury.";
     const b = d.dive.burn, n = d.dive.donate, tot = b.weight + n.weight;
     $("b-burn").textContent = bar(tot ? b.weight / tot : 0); $("b-donate").textContent = bar(tot ? n.weight / tot : 0);

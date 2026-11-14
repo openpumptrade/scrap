@@ -60,10 +60,12 @@ export async function runLiquidity({ wallet, mint = config.mint, pool = null, ma
   for (let i = 0; i < 4 && txs.buy && held <= held0; i++) { await new Promise((r) => setTimeout(r, 1500)); held = await tokenBalanceRaw(me, mint, programId); }
   if (held <= 0n) return out("partial", "the reserve holds no tokens to pair");
 
-  // 2. deposit the coin, paired with SOL. A hair under the full balance: the pool rounds the amount it
-  //    takes up, and asking for every last unit fails with "insufficient funds".
+  // 2. deposit the coin, paired with SOL. Not the full balance: the deposit asks for a fixed amount of LP
+  //    tokens, and if the price moves before it lands the pool takes more of the coin for it (up to the
+  //    slippage allowance). Holding that allowance back keeps a moving market from failing the deposit
+  //    with "insufficient funds"; what is held back is paired by the next round.
   const state = await amm.liquiditySolanaState(poolPk, wallet.publicKey);
-  let depositBase = (held * 995n) / 1000n;
+  let depositBase = (held * 100n) / BigInt(101 + Math.ceil(config.rules.slippagePct));
   let dep = PUMP_AMM_SDK.depositBaseInput(state, new BN(depositBase.toString()), config.rules.slippagePct);
   let room = BigInt(await connection.getBalance(wallet.publicKey)) - reserve;
   if (maxSol !== Infinity && room > lamports(maxSol)) room = lamports(maxSol);

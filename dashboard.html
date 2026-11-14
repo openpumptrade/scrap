@@ -114,6 +114,8 @@
 
   <section class="box" style="margin-top:16px"><header><h2>Wallets</h2><small>balances right now</small></header><div class="scroll"><table><thead><tr><th>wallet</th><th class="l">role</th><th>SOL</th><th>address</th></tr></thead><tbody id="wallets"><tr><td colspan="4" class="empty">loading</td></tr></tbody></table></div></section>
 
+  <section class="box" style="margin-top:16px"><header><h2>Last airdrop</h2><small id="a-sub">who received it</small></header><div class="scroll"><table><thead><tr><th>#</th><th class="l">holder</th><th>$SCRAP received</th><th>share of the drop</th></tr></thead><tbody id="air"><tr><td colspan="4" class="empty">loading</td></tr></tbody></table></div></section>
+
   <section class="box" style="margin-top:16px"><header><h2>Dive log</h2><small>one row per cycle, newest first</small></header><div class="scroll"><table><thead><tr><th>#</th><th class="l">time (UTC)</th><th>claimed</th><th>to LP</th><th>to treasury</th><th>bought with</th><th>airdropped</th><th>holders</th><th>burned</th><th class="l">transactions</th></tr></thead><tbody id="dives"><tr><td colspan="10" class="empty">loading</td></tr></tbody></table></div></section>
 
   <section class="box" style="margin-top:16px"><header><h2>Liquidity rounds</h2><small>buy, deposit into the PumpSwap pool, burn the LP tokens</small></header><div class="scroll"><table><thead><tr><th>#</th><th class="l">time (UTC)</th><th class="l">status</th><th>SOL added</th><th>$SCRAP paired</th><th class="l">transactions</th><th class="l">note</th></tr></thead><tbody id="lp"><tr><td colspan="7" class="empty">loading</td></tr></tbody></table></div></section>
@@ -253,8 +255,16 @@ async function loadChart() {
   } catch {}
 }
 
-loadToken(); loadDives(); loadLp(); loadChart();
-setInterval(loadToken, 10000); setInterval(() => { loadDives(); loadLp(); loadChart(); }, 30000);
+async function loadAir() {
+  try {
+    const d = await get("/api/airdrop/last");
+    const rows = (d.recipients || []).filter((r) => okKey(r.wallet)).sort((a, b) => b.tokens - a.tokens), total = rows.reduce((a, r) => a + (+r.tokens || 0), 0);
+    $("a-sub").textContent = d.dive ? "dive #" + Number(d.dive) + " · " + when(d.t) + " UTC · bought straight into each wallet" : "who received it";
+    $("air").innerHTML = rows.length ? rows.map((r, i) => `<tr><td>${i + 1}</td><td class="l"><a href="https://solscan.io/account/${r.wallet}" target="_blank" rel="noopener">${r.wallet.slice(0, 4)}...${r.wallet.slice(-4)}</a></td><td>${big(+r.tokens || 0)}</td><td>${total ? ((100 * r.tokens) / total).toFixed(1) : "0.0"}%</td></tr>`).join("") : `<tr><td colspan="4" class="empty">no airdrop recorded yet</td></tr>`;
+  } catch {}
+}
+loadToken(); loadDives(); loadLp(); loadChart(); loadAir();
+setInterval(loadToken, 10000); setInterval(() => { loadDives(); loadLp(); loadChart(); loadAir(); }, 30000);
 addEventListener("resize", loadChart);
 </script>
 <!-- notice:x-suspended -->

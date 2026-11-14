@@ -25,6 +25,13 @@ async function cached(key, ttlMs, fn) {
 
 export const live = { started: false };
 
+/// What the engine wallet still owes each bucket (SOL claimed but not yet sent or spent).
+async function ledger() {
+  const rows = await sql`select key, value from meta where key in ('owed_lp', 'owed_treasury', 'buy_budget')`;
+  const v = (k) => Number(rows.find((r) => r.key === k)?.value || 0) / 1e9;
+  return { lp: v("owed_lp"), treasury: v("owed_treasury"), buy: v("buy_budget") };
+}
+
 /// SOL sitting in each project wallet right now (cached by the caller).
 async function walletBalances() {
   const read = async (a) => (a ? await getSolBalance(a) : null);
@@ -40,7 +47,7 @@ export function startApi() {
   app.use(compression());
   app.set("etag", false);
   // Short edge cache: a proxy in front (s-maxage) answers many viewers with one origin fetch.
-  const EDGE_TTL = { "/community": 8, "/token": 5, "/trades": 10, "/dives": 20, "/chart": 15, "/liquidity": 20 };
+  const EDGE_TTL = { "/community": 8, "/airdrop/last": 20, "/token": 5, "/trades": 10, "/dives": 20, "/chart": 15, "/liquidity": 20 };
   app.use("/api", (req, res, next) => {
     const ttl = EDGE_TTL[req.path];
     res.set("cache-control", ttl ? `public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl * 4}` : "no-store");
@@ -68,6 +75,7 @@ export function startApi() {
       burnedPct: coin.supply0 ? coin.burned / coin.supply0 : 0, marketUpdatedAt: coin.updatedAt,
       pot: { unclaimed: pot.unclaimed, unclaimedUsd: pot.unclaimedUsd, wallet: pot.wallet, spendable: pot.spendable, walletSol: pot.walletSol, walletTokens: pot.walletTokens, estTokens: pot.estTokens, updatedAt: pot.updatedAt, error: pot.error },
       nextDiveAt: state.nextDiveAt, genesis: state.genesis, progress: state.progress, lastNote: state.lastNote,
+      ledger: await cached("ledger", 10_000, ledger).catch(() => null),
       totalClaimed: state.totalClaimed, totalClaimedUsd: state.totalClaimedUsd, totalAirdropTransfers: state.totalAirdropTransfers, wallets: await cached("wallets", 30_000, walletBalances).catch(() => null),
       liquidity: lpState, split: config.split, lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet, totalLp: state.totalLp, totalTreasury: state.totalTreasury, totalAirdropped: state.totalAirdropped,
       divesRun: state.divesRun, totalSpentQuote: state.totalSpentQuote, totalSpentUsd: state.totalSpentUsd, totalBurned: state.totalBurned, dryTotals: state.dryTotals, lastDive: state.lastDive,
@@ -81,6 +89,12 @@ export function startApi() {
     const limit = Math.min(100, Number(req.query.limit || 30));
     const rows = await sql`select * from lp_rounds order by id desc limit ${limit}`;
     res.json(rows.map((r) => ({ id: r.id, t: r.ts, status: r.status, spentSol: r.spent_sol, tokensPaired: r.base_deposited, buyTx: r.buy_tx, depositTx: r.deposit_tx, burnTx: r.burn_tx, note: r.note })));
+  });
+
+  /// who received the most recent airdrop, and how much each
+  app.get("/api/airdrop/last", async (_req, res) => {
+    const [r] = await sql`select id, ts, airdrop_to from dives where status = 'done' and dry = false and airdrop_to is not null order by id desc limit 1`;
+    res.json(r ? { dive: r.id, t: r.ts, recipients: r.airdrop_to } : { dive: null, recipients: [] });
   });
 
   app.get("/api/dives", async (req, res) => {
@@ -100,7 +114,11 @@ export function startApi() {
         .filter((c) => isFinite(c.t) && c.c > 0).map((c) => (c.t > 1e12 ? { ...c, t: Math.floor(c.t / 1000) } : c)).sort((a, b) => a.t - b.t);
       res.json({ source: "pump.fun", interval, points, dives, priceUsd: coin.priceUsd, mcapUsd: coin.mcapUsd, supply0: coin.supply0, supply: coin.supply, now: now() });
     } catch (err) {
-      const rows = await sql`select ts, price_usd from samples order by ts`;
+      const rows = await cached("samples", 15_000, async () => {
+        const [{ lo, hi }] = await sql`select min(ts) as lo, max(ts) as hi from samples`;
+        const bucket = Math.max(10, Math.ceil(((hi || 0) - (lo || 0)) / 500));
+        return sql`select distinct on (k) ts, price_usd from (select ts, price_usd, ts / ${bucket} as k from samples) s order by k, ts desc`;
+      });
       res.json({ source: "samples", interval, points: thin(rows).map((r) => ({ t: r.ts, c: r.price_usd })), dives, priceUsd: coin.priceUsd, mcapUsd: coin.mcapUsd, supply0: coin.supply0, supply: coin.supply, now: now(), error: String(err.message).slice(0, 100) });
     }
   });

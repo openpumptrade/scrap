@@ -56,6 +56,12 @@ export async function ensureCommunitySchema() {
   await sql`create table if not exists community_weeks (week int primary key, status text not null, settled_at int, result jsonb)`;
 }
 
+let treasuryCache = { at: 0, sol: 0 };
+async function treasurySol() {
+  if (Date.now() - treasuryCache.at > 30_000) treasuryCache = { at: Date.now(), sol: (await connection.getBalance(new PublicKey(config.treasuryWallet))) / 1e9 };
+  return treasuryCache.sol;
+}
+
 const projectWallets = () => new Set([config.wallet?.publicKey.toBase58(), config.lpWallet, config.treasuryWallet].filter(Boolean));
 
 async function holding(wallet) {
@@ -119,11 +125,18 @@ export function mountCommunity(app) {
 
   app.get("/api/community", wrap(async () => {
     const week = weekOf(now());
+    // what the treasury holds now, and what each contest would move if the week closed this minute
+    let treasury = null;
+    if (config.treasuryWallet) {
+      const sol = await treasurySol();
+      const free = Math.max(0, sol - config.community.reserveSol);
+      treasury = { sol, voteSol: (free * config.community.voteSliceBps) / 10_000, prizeSol: (free * config.community.prizeBps) / 10_000 };
+    }
     const last = await sql`select week, status, settled_at, result from community_weeks order by week desc limit 4`;
     return {
       week, endsAt: (week + 1) * WEEK, now: now(), minHold: config.community.minHold,
       voteSliceBps: config.community.voteSliceBps, prizeBps: config.community.prizeBps,
-      donationWallet: config.donationWallet || null, payouts: Boolean(config.treasuryKeypair), badges: BADGES,
+      treasury, donationWallet: config.donationWallet || null, payouts: Boolean(config.treasuryKeypair), badges: BADGES,
       ...(await tally(week)),
       history: last.map((r) => ({ week: r.week, status: r.status, settledAt: r.settled_at, result: r.result })),
     };

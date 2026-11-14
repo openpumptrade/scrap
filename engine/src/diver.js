@@ -32,7 +32,13 @@ export const state = {
   dryTotals: { dives: 0, spentQuote: 0, spentUsd: 0, burned: 0 },
 };
 
-let firing = false;
+let firing = false, stopping = false;
+
+/// Stop taking new dives and wait (up to 2 minutes) for the one in flight.
+export async function stopDiver() {
+  stopping = true;
+  for (let i = 0; firing && i < 120; i++) await new Promise((r) => setTimeout(r, 1000));
+}
 const now = () => Math.floor(Date.now() / 1000);
 
 export async function startDiver() {
@@ -74,7 +80,7 @@ async function schedule() {
 }
 
 async function tick() {
-  if (firing || !coin.loaded) return;
+  if (firing || stopping || !coin.loaded) return;
   if (now() < state.nextDiveAt) return;
   if (!config.schedulerEnabled) { await schedule(); return; }
   firing = true;
@@ -125,7 +131,7 @@ export async function runDive() {
     const wouldSpend = unclaimed;
     const est = pot.estTokens || (coin.priceUsd > 0 && quoteUsd > 0 ? (wouldSpend * quoteUsd) / coin.priceUsd : 0);
     const status = wouldSpend * quoteUsd >= config.rules.minBuyUsd ? "done" : "skipped";
-    const msg = status === "done" ? `would claim ${wouldSpend} ${sym}, buy ≈ ${Math.round(est).toLocaleString()} $${coin.symbol} and burn them` : `pot ${wouldSpend} ${sym} (~$${(wouldSpend * quoteUsd).toFixed(2)}) under the $${config.rules.minBuyUsd} minimum — rolls over`;
+    const msg = status === "done" ? `would claim ${wouldSpend} ${sym} and split it (liquidity, treasury, airdrop, burn)` : `pot ${wouldSpend} ${sym} (~$${(wouldSpend * quoteUsd).toFixed(2)}) under the $${config.rules.minBuyUsd} minimum — rolls over`;
     await sql`update dives set status = ${status}, claimed_quote = ${wouldSpend}, spent_quote = ${wouldSpend}, tokens_burned = ${est}, venue = ${coin.graduated ? "pumpswap" : "curve"}, note = ${msg}, finished_at = ${now()} where id = ${id}`;
     setProgress({ status, claimed: wouldSpend, spent: wouldSpend, tokens: est, note: msg });
     await loadHistory();
@@ -239,10 +245,11 @@ export async function runDive() {
       } else throw err;
     }
     txs.buy = buyTx;
-    console.log(`[diver] bought with ${spend} ${sym} on ${venue} · ${buyTx}`);
+    console.log(`[diver] bought with ${Number(raw) / 10 ** q.decimals} ${sym} on ${venue} · ${buyTx}`);
   }
   // 2b. the airdrop, delivered as one small buy per holder, pro rata to what each one holds
   let airdropped = 0, recipients = 0, sentRaw = 0n;
+  const airdropTo = []; // who got what, for the public record
   if (direct) {
     const accounts = direct.holders.map((h) => new PublicKey(h.account));
     const amounts = async () => (await connection.getMultipleAccountsInfo(accounts)).map((a) => (a ? a.data.readBigUInt64LE(64) : null));
@@ -256,7 +263,13 @@ export async function runDive() {
     await new Promise((r) => setTimeout(r, 2000));
     const after = await amounts();
     let got = 0n;
-    ok.forEach((good, i) => { if (good) { recipients++; if (before[i] !== null && after[i] !== null && after[i] > before[i]) got += after[i] - before[i]; } });
+    ok.forEach((good, i) => {
+      if (!good) return;
+      recipients++;
+      const d = before[i] !== null && after[i] !== null && after[i] > before[i] ? after[i] - before[i] : 0n;
+      got += d;
+      airdropTo.push({ wallet: direct.holders[i].owner, tokens: Number(d) / 1e6 });
+    });
     airdropped = Number(got) / 1e6;
     console.log(`[diver] airdrop: bought ${airdropped.toLocaleString()} ${coin.symbol} straight into ${recipients} of ${direct.holders.length} holder accounts`);
   }
@@ -314,7 +327,7 @@ export async function runDive() {
   const msg = status === "done"
     ? `claimed ${claimed} ${sym}${txs.split ? ` · ${sentLp} to LP, ${sentTreasury} to treasury` : ""}${buyTx ? ` · bought with ${spent} ${sym} on ${venue}` : ""} · airdropped ${Math.round(airdropped).toLocaleString()} to ${recipients} holders · burned ${Math.round(burned).toLocaleString()} $${coin.symbol}`
     : `${spend} ${sym} (~$${(spend * quoteUsd).toFixed(2)}) in the buy budget, under the $${config.rules.minBuyUsd} minimum — rolls into the next dive`;
-  await sql`update dives set status = ${status}, tokens_airdropped = ${airdropped}, airdrop_recipients = ${recipients}, airdrop_tx = ${txs.airdrop || null}, tokens_burned = ${burned}, burn_tx = ${txs.burn || null}, supply_after = ${supplyAfter}, sol_usd = ${solUsd}, price_usd = ${coin.priceUsd}, quote_usd = ${coin.quoteUsd || quoteUsd}, note = ${msg}, finished_at = ${now()} where id = ${id}`;
+  await sql`update dives set status = ${status}, airdrop_to = ${airdropTo.length ? sql.json(airdropTo) : null}, tokens_airdropped = ${airdropped}, airdrop_recipients = ${recipients}, airdrop_tx = ${txs.airdrop || null}, tokens_burned = ${burned}, burn_tx = ${txs.burn || null}, supply_after = ${supplyAfter}, sol_usd = ${solUsd}, price_usd = ${coin.priceUsd}, quote_usd = ${coin.quoteUsd || quoteUsd}, note = ${msg}, finished_at = ${now()} where id = ${id}`;
   setProgress({ status, tokens: burned, txs: { ...txs }, note: msg });
   if (status === "done" && state.lastNote) { state.lastNote = null; await setMeta("last_note", ""); } // a good dive clears the last error note
   if (supplyAfter !== null) { coin.supply = supplyAfter; coin.burned = Math.max(0, coin.supply0 - supplyAfter); }

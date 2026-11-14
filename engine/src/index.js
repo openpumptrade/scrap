@@ -1,11 +1,11 @@
 import { config, mode } from "./config.js";
-import { ensureSchema } from "./db.js";
+import { ensureSchema, acquireEngineLock } from "./db.js";
 import { ensureCommunitySchema } from "./community.js";
 import { coin, loadCoin, startTracker } from "./tracker.js";
-import { startDiver } from "./diver.js";
+import { startDiver, stopDiver } from "./diver.js";
 import { startApi, live } from "./api.js";
 
-/// SCRAP. Every 3 minutes 100% of the fees → one buy of $SCRAP → burned.
+/// SCRAP. Every 3 minutes the creator fees are claimed and split: liquidity, airdrop, treasury, burn.
 /// One process: market/pot tracker + diver + API + page.
 
 async function main() {
@@ -24,7 +24,11 @@ async function main() {
   console.log(`[boot] ${coin.name} ($${coin.symbol}) · mint ${coin.mint} · paired with ${coin.quote.symbol}${coin.taxBps ? ` · tax ${coin.taxBps / 100}%` : ""} · creator ${coin.creator} · mode ${mode()} · dryRun ${config.dryRun} · scheduler ${config.schedulerEnabled}`);
   live.started = true;
   await startTracker();
+  await acquireEngineLock(); // a redeploy overlaps the old container: never two engines on one wallet
   await startDiver();
 }
+
+// a redeploy sends SIGTERM: stop scheduling, let a dive in flight finish, then leave
+process.on("SIGTERM", async () => { console.log("[boot] SIGTERM: finishing the work in flight"); await stopDiver(); process.exit(0); });
 
 main().catch((err) => { console.error("[boot] fatal:", err); process.exit(1); });
