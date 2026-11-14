@@ -326,10 +326,11 @@ export async function isGraduated(mint) {
 
 // --------------------------------------------- post-graduation buys (PumpSwap)
 /// ONE buy on the coin's canonical PumpSwap pool, paying `quoteAmountRaw` of the quote asset.
-export async function pumpswapBuy({ wallet, mint, quote, quoteAmountRaw, pool }) {
+/// `toAccount`: deliver the tokens to this token account instead of the buyer's own (the buyer still pays).
+export async function pumpswapBuy({ wallet, mint, quote, quoteAmountRaw, pool, toAccount = null }) {
   const mintPk = new PublicKey(mint);
   const poolPk = pool ? new PublicKey(pool) : canonicalPumpPoolPda(mintPk, quote.isSol ? undefined : new PublicKey(quote.mint));
-  const state = await amm.swapSolanaState(poolPk, wallet.publicKey);
+  const state = await amm.swapSolanaState(poolPk, wallet.publicKey, toAccount ? new PublicKey(toAccount) : undefined);
   const instructions = await PUMP_AMM_SDK.buyQuoteInput(state, new BN(quoteAmountRaw.toString()), config.rules.slippagePct);
   const sig = await sendTx({ instructions, payer: wallet.publicKey, signers: [wallet], computeUnits: 400_000 });
   return { sig, pool: poolPk.toBase58() };

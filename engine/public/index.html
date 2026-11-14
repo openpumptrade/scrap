@@ -228,8 +228,8 @@
     <div class="steps">
       <div class="step"><span class="n">01</span><h3>Trades pay fees</h3><p>Every buy and sell of $SCRAP pays pump.fun creator fees, on the bonding curve and on PumpSwap after graduation. All of them are routed to the engine wallet.</p></div>
       <div class="step"><span class="n">02</span><h3>Claim and split</h3><p>Every 3 minutes the engine claims what piled up and divides it: half to the liquidity reserve, which is deposited into the pool with its LP tokens burned, and a fifth to the meme treasury.</p></div>
-      <div class="step"><span class="n">03</span><h3>One market buy</h3><p>The remaining 30% goes into a single buy of $SCRAP on whichever venue the coin trades on: curve, PumpSwap, or Jupiter as a fallback.</p></div>
-      <div class="step"><span class="n">04</span><h3>Airdrop and burn</h3><p>Two thirds of what that buy returned is sent to the top holders, pro rata. The last third is burned on-chain. The engine never sells.</p></div>
+      <div class="step"><span class="n">03</span><h3>Market buys</h3><p>The remaining 30% buys $SCRAP on whichever venue the coin trades on: curve, PumpSwap, or Jupiter as a fallback.</p></div>
+      <div class="step"><span class="n">04</span><h3>Airdrop and burn</h3><p>Two thirds of it buys $SCRAP straight into the top holders' wallets, pro rata. The last third is bought and burned on-chain. The engine never sells.</p></div>
     </div>
   </div>
 </section>
@@ -239,7 +239,7 @@
     <div class="sec-head"><span class="eyebrow">the split</span><h2>50 / 20 / 20 / 10, straight from the brief.</h2><p class="sub">The AI wrote the allocation as a token split. A fair launch has no tokens to allocate, so the same numbers are applied to every claim of creator fees instead. Each bucket is a public wallet you can watch.</p></div>
     <div class="spec">
       <div class="row"><b>50% liquidity</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu" target="_blank" rel="noopener">liquidity reserve wallet</a>. Once the coin trades on PumpSwap, the engine uses it: it buys $SCRAP with about half, deposits both sides into the pool and burns the LP tokens, so that liquidity can never be pulled.</p><span class="tag" id="s-lp">0 SOL</span></div>
-      <div class="row"><b>20% community airdrop</b><p>Buys $SCRAP and sends it to the top 20 holders, pro rata to what they hold. The curve, pools and the project wallets are excluded.</p><span class="tag" id="s-air">0</span></div>
+      <div class="row"><b>20% community airdrop</b><p>Each of the top 20 holders gets a buy of $SCRAP delivered straight into their wallet, pro rata to what they hold. The tokens come from the pool, never from the engine wallet. The curve, pools and the project wallets are excluded.</p><span class="tag" id="s-air">0</span></div>
       <div class="row"><b>20% meme treasury</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96" target="_blank" rel="noopener">treasury wallet</a>. Every week holders <a class="u" href="/community">vote</a> on a quarter of it (burn more, or donate to animal shelters) and a tenth buys the Recycle a Rug prize. The engine settles each week by itself. It is a single wallet, not a multisig.</p><span class="tag" id="s-tr">0 SOL</span></div>
       <div class="row"><b>10% burn</b><p>Buys $SCRAP and burns it. Only what the engine itself bought is ever burned.</p><span class="tag" id="s-burn">0</span></div>
       <div class="row"><b>Engine wallet</b><p><a class="u" href="https://solscan.io/account/9uhoRkqugdA5mUk1Z7xjZ4exh5Y9AhMpin9SRV6vCYKA" target="_blank" rel="noopener">9uho...CYKA</a> receives the fees and signs every transaction. It keeps 0.01 SOL for transaction fees and nothing else.</p><span class="tag">gas only</span></div>
@@ -286,7 +286,7 @@
     <div class="sec-head"><span class="eyebrow">faq</span><h2>Questions from the dumpster.</h2></div>
     <div class="faq">
       <details><summary>Did an AI really come up with this?</summary><p>Yes. The name, the mascot, the tagline and the rule set come from a single AI answer to a single prompt. Humans wrote the engine and pressed launch.</p></details>
-      <details><summary>Where do the burned and airdropped tokens come from?</summary><p>From the market. 30% of every claim goes into one buy of $SCRAP. A third of what that buy returns is burned and two thirds are sent to the top holders. Nothing comes from a pre-minted stash.</p></details>
+      <details><summary>Where do the burned and airdropped tokens come from?</summary><p>From the market. 30% of every claim buys $SCRAP. A third is bought by the engine and burned; two thirds are bought directly into the top holders' wallets. Nothing comes from a pre-minted stash.</p></details>
       <details><summary>Can the engine sell or rug?</summary><p>The engine has no sell path. The code is public, so you can check: it claims, splits, buys, airdrops and burns. The liquidity reserve is spent by the engine only, on pool deposits whose LP tokens are burned. The treasury is a wallet held by the team, with a public address, so every movement out of it is visible.</p></details>
       <details><summary>Who gets the airdrop?</summary><p>The 20 largest holders at the moment of each dive, in proportion to their balance. The bonding curve, liquidity pools and the project wallets are skipped. There is nothing to claim.</p></details>
       <details><summary>What happens when volume is low?</summary><p>Small pots roll over. If the fees are under the minimum, the dive is skipped and the fees wait for the next one. Everything scales with volume, there is no fixed promise.</p></details>

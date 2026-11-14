@@ -1,6 +1,7 @@
 import { config, mode } from "./config.js";
 import { sql, getMeta, setMeta } from "./db.js";
-import { getSolBalance, getSolUsd, sendSol } from "./solana.js";
+import { PublicKey } from "@solana/web3.js";
+import { connection, getSolBalance, getSolUsd, sendSol } from "./solana.js";
 import { allocate, splitBought } from "./split.js";
 import { startLiquidity, liquidityRound } from "./liquidity.js";
 import { communityTick } from "./community.js";
@@ -204,11 +205,26 @@ export async function runDive() {
   // tokens in the wallet before the buy are NOT the engine's to burn (dev bag, transfers)
   const balanceBeforeRaw = await tokenBalanceRaw(me, config.mint, programId);
 
-  // 2. one buy with all of it
+  // 2. the buys. On PumpSwap the airdrop is not a transfer: each holder's share is bought straight into
+  //    that holder's own token account (pool -> holder, like any buy), so the engine wallet never sends
+  //    tokens to anyone and holder maps have nothing to cluster. The engine only buys its burn share.
+  //    On the bonding curve (or when the airdrop is too small to split) it is the old single buy.
   let buyTx = "", venue = "";
-  if (spend * quoteUsd >= config.rules.minBuyUsd) {
-    const raw = toRaw(spend, q.decimals);
-    const graduated = (await isGraduated(config.mint)) ?? coin.graduated;
+  const worthIt = spend * quoteUsd >= config.rules.minBuyUsd;
+  const graduated = worthIt ? ((await isGraduated(config.mint)) ?? coin.graduated) : coin.graduated;
+  const both = bps.airdrop + bps.burn;
+  let airLamports = worthIt && q.isSol && graduated && bps.airdrop > 0 && both > 0 ? (toRaw(spend, 9) * BigInt(bps.airdrop)) / BigInt(both) : 0n;
+  let direct = null; // { holders, total } when the airdrop is delivered by buying
+  if (airLamports > 0n) {
+    try {
+      const all = await topHolders(config.mint, { exclude: [me, config.lpWallet, config.treasuryWallet, coin.creator], limit: config.rules.airdropHolders });
+      const n = Math.min(all.length, Number(airLamports / toRaw(config.rules.minAirdropBuySol, 9)));
+      if (n > 0) { const holders = all.slice(0, n); direct = { holders, total: holders.reduce((a, h) => a + h.amountRaw, 0n) }; }
+    } catch (err) { console.warn(`[diver] holder list unavailable (${String(err.message).slice(0, 100)}), the airdrop share is burned this dive`); }
+    if (!direct) airLamports = 0n; // too small to split between holders: it joins the burn buy
+  }
+  if (worthIt) {
+    const raw = toRaw(spend, q.decimals) - airLamports;
     const poolBuy = async () => {
       try { venue = "pumpswap"; return await pumpswapBuy({ wallet, mint: config.mint, quote: q, quoteAmountRaw: raw, pool: coin.pool }); }
       catch (err) { console.warn(`[diver] PumpSwap buy failed (${String(err.message).slice(0, 100)}) — routing through Jupiter`); venue = "jupiter"; return jupiterBuy({ wallet, mint: config.mint, quote: q, quoteAmountRaw: raw }); }
@@ -225,10 +241,30 @@ export async function runDive() {
     txs.buy = buyTx;
     console.log(`[diver] bought with ${spend} ${sym} on ${venue} · ${buyTx}`);
   }
-  if (buyTx) await new Promise((r) => setTimeout(r, 1500)); // let the RPC catch up with the buy
+  // 2b. the airdrop, delivered as one small buy per holder, pro rata to what each one holds
+  let airdropped = 0, recipients = 0, sentRaw = 0n;
+  if (direct) {
+    const accounts = direct.holders.map((h) => new PublicKey(h.account));
+    const amounts = async () => (await connection.getMultipleAccountsInfo(accounts)).map((a) => (a ? a.data.readBigUInt64LE(64) : null));
+    const before = await amounts();
+    const ok = new Array(direct.holders.length).fill(false);
+    for (let i = 0; i < direct.holders.length; i += 4) {
+      const batch = direct.holders.slice(i, i + 4);
+      const res = await Promise.allSettled(batch.map((h) => pumpswapBuy({ wallet, mint: config.mint, quote: q, quoteAmountRaw: (airLamports * h.amountRaw) / direct.total, pool: coin.pool, toAccount: h.account })));
+      res.forEach((r, k) => { if (r.status === "fulfilled") { ok[i + k] = true; if (!txs.airdrop) txs.airdrop = r.value.sig; } });
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+    const after = await amounts();
+    let got = 0n;
+    ok.forEach((good, i) => { if (good) { recipients++; if (before[i] !== null && after[i] !== null && after[i] > before[i]) got += after[i] - before[i]; } });
+    airdropped = Number(got) / 1e6;
+    console.log(`[diver] airdrop: bought ${airdropped.toLocaleString()} ${coin.symbol} straight into ${recipients} of ${direct.holders.length} holder accounts`);
+  }
+
+  if (buyTx || recipients) await new Promise((r) => setTimeout(r, 1500)); // let the RPC catch up with the buys
   const walletAfterBuy = await quoteBalance(me, q);
-  const spent = buyTx ? Math.max(0, walletQuote - walletAfterBuy) : 0;
-  if (q.isSol && buyTx) {
+  const spent = buyTx || recipients ? Math.max(0, walletQuote - walletAfterBuy) : 0;
+  if (q.isSol && (buyTx || recipients)) {
     const left = BigInt((await getMeta("buy_budget", "0")) || "0") - toRaw(spent, 9);
     await setMeta("buy_budget", (left > 0n ? left : 0n).toString());
   }
@@ -239,12 +275,11 @@ export async function runDive() {
   //    rest is burned (together with whatever a previous failed burn still owes).
   const balanceAfterRaw = buyTx ? await tokenBalanceRawSettled(me, config.mint, programId) : balanceBeforeRaw;
   const boughtRaw = balanceAfterRaw > balanceBeforeRaw ? balanceAfterRaw - balanceBeforeRaw : 0n;
-  const part = splitBought(boughtRaw, bps);
+  const part = direct ? { airdropRaw: 0n, burnRaw: boughtRaw } : splitBought(boughtRaw, bps); // with direct delivery the engine only bought its burn share
   // everything bought is owed to the burn until the airdrop has actually left the wallet:
   // a crash or a failed airdrop burns the tokens instead of stranding them
   const owedBefore = BigInt((await getMeta("owed_burn_raw", "0")) || "0") + boughtRaw;
   if (boughtRaw > 0n) await setMeta("owed_burn_raw", owedBefore.toString());
-  let airdropped = 0, recipients = 0, sentRaw = 0n;
   if (part.airdropRaw > 0n) {
     try {
       const holders = await topHolders(config.mint, { exclude: [me, config.lpWallet, config.treasuryWallet, coin.creator], limit: config.rules.airdropHolders });
@@ -266,7 +301,7 @@ export async function runDive() {
     }
   }
   // leave no token account behind: with everything airdropped or burned, the engine wallet stops being a holder
-  if (buyTx || burned > 0) {
+  if (buyTx || burned > 0 || recipients) {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       const sig = await closeEmptyTokenAccount({ wallet, mint: config.mint, programId });
@@ -275,7 +310,7 @@ export async function runDive() {
   }
   const supplyAfter = await totalSupply(config.mint).catch(() => null);
   const solUsd = await getSolUsd();
-  const status = buyTx || burned > 0 || txs.split ? "done" : "skipped";
+  const status = buyTx || burned > 0 || recipients || txs.split ? "done" : "skipped";
   const msg = status === "done"
     ? `claimed ${claimed} ${sym}${txs.split ? ` · ${sentLp} to LP, ${sentTreasury} to treasury` : ""}${buyTx ? ` · bought with ${spent} ${sym} on ${venue}` : ""} · airdropped ${Math.round(airdropped).toLocaleString()} to ${recipients} holders · burned ${Math.round(burned).toLocaleString()} $${coin.symbol}`
     : `${spend} ${sym} (~$${(spend * quoteUsd).toFixed(2)}) in the buy budget, under the $${config.rules.minBuyUsd} minimum — rolls into the next dive`;

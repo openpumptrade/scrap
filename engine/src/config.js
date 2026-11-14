@@ -60,6 +60,7 @@ export const config = {
     minGasSol: num(process.env.MIN_GAS_SOL, 0.003),          // below this the engine refuses to fire (token-quoted coins need SOL for fees)
     slippagePct: num(process.env.SLIPPAGE_PCT, 5),
     minTransferSol: num(process.env.MIN_TRANSFER_SOL, 0.002), // LP / treasury shares below this wait in the wallet (covers rent on a new account)
+    minAirdropBuySol: num(process.env.MIN_AIRDROP_BUY_SOL, 0.003), // each holder's share must be worth a transaction; a smaller airdrop reaches fewer holders
     airdropHolders: num(process.env.AIRDROP_HOLDERS, 20),     // the airdrop share goes to this many top holders, pro rata
   },
   pollSec: num(process.env.POLL_SEC, 10),

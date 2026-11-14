@@ -50,10 +50,11 @@ them are routed to the engine wallet. On a fixed 3-minute clock the engine runs 
 1. **Claim.** All unclaimed creator fees (bonding curve and PumpSwap) go to the engine wallet.
 2. **Split.** The claim is divided into four buckets. The liquidity and treasury shares leave as SOL in
    one transaction.
-3. **Buy.** The airdrop and burn shares go into one market buy of $SCRAP on the venue the coin trades on
+3. **Buy.** The airdrop and burn shares buy $SCRAP on the venue the coin trades on
    (curve, PumpSwap, Jupiter as a fallback).
-4. **Airdrop and burn.** The tokens that buy returned are divided: the airdrop share is sent to the top
-   holders pro rata, the rest is burned on-chain.
+4. **Airdrop and burn.** On PumpSwap the airdrop share is spent as one small buy per top holder,
+   delivered into that holder's own token account. The engine buys only the burn share and burns it.
+   (On the bonding curve it is a single buy whose tokens are divided and transferred.)
 
 The engine has no sell path. A pot too small to be worth a transaction rolls into the next dive.
 
@@ -65,7 +66,7 @@ numbers are applied to every claim of creator fees.
 | Share | Bucket | What happens |
 |---|---|---|
 | 50% | Liquidity | SOL sent to the liquidity reserve wallet `33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu`. After graduation the engine buys $SCRAP with about half of it, deposits both sides into the PumpSwap pool and burns the LP tokens. |
-| 20% | Community airdrop | Buys $SCRAP and sends it to the top 20 holders, pro rata. |
+| 20% | Community airdrop | Buys $SCRAP straight into the wallets of the top 20 holders, pro rata. |
 | 20% | Meme treasury | SOL sent to the treasury wallet `GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96`. |
 | 10% | Burn | Buys $SCRAP and burns it. |
 
@@ -225,6 +226,9 @@ plain SOL coin.
 - **Watch mode by default.** No key, no transactions.
 - **Kill switch.** `SCHEDULER_ENABLED=false` stops everything without taking the site down.
 - **No sell path.** There is no code that sells $SCRAP.
+- **Airdrops are buys, not transfers.** On PumpSwap each holder's share is bought straight into that
+  holder's token account, so the tokens go pool to holder and the engine wallet never sends tokens to
+  anyone. A holder map has no sender to cluster the recipients around.
 - **The engine is not a holder.** After each dive its token account is empty and gets closed, so holder
   maps do not draw the airdrop recipients as a cluster around the engine wallet.
 
