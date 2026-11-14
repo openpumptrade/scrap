@@ -451,3 +451,16 @@ export async function airdropTokens({ wallet, mint, programId, amountRaw, holder
   }
   return { sigs, sentRaw, recipients, error };
 }
+
+/// Send an exact raw amount of `mint` to another wallet, creating its token account if it has none.
+export async function sendTokens({ wallet, mint, programId, to, amountRaw }) {
+  if (BigInt(amountRaw) <= 0n) return "";
+  const mintPk = new PublicKey(mint), toPk = new PublicKey(to);
+  const from = getAssociatedTokenAddressSync(mintPk, wallet.publicKey, false, programId);
+  const dest = getAssociatedTokenAddressSync(mintPk, toPk, true, programId);
+  const instructions = [
+    createAssociatedTokenAccountIdempotentInstruction(wallet.publicKey, dest, toPk, mintPk, programId),
+    createTransferCheckedInstruction(from, mintPk, dest, wallet.publicKey, BigInt(amountRaw), DECIMALS, [], programId),
+  ];
+  return sendTx({ instructions, payer: wallet.publicKey, signers: [wallet], computeUnits: 120_000 });
+}

@@ -153,7 +153,7 @@
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#top">$SCRAP</a>
-    <nav><a href="#origin">origin</a><a href="#how">how</a><a href="#split">split</a><a href="#spec">spec</a><a href="#log">log</a><a href="#faq">faq</a></nav>
+    <nav><a href="#origin">origin</a><a href="#how">how</a><a href="#split">split</a><a href="/dashboard">dashboard</a><a href="/community">community</a><a href="#faq">faq</a></nav>
     <a class="btn sm gh" href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a>
     <a class="btn sm solid" id="navbuy" href="https://pump.fun" target="_blank" rel="noopener">Buy $SCRAP</a>
   </div>
@@ -168,7 +168,7 @@
         <h1>One degen's trash is another degen's treasury.</h1>
         <p class="sub">We asked an AI what memecoin it would launch on Solana. It answered <b>$SCRAP, the Solana Trash Panda</b>, and drew it in ASCII. So we built the dumpster. Every 3 minutes the creator fees are split the way the brief says: <b>50% liquidity, 20% holder airdrop, 20% meme treasury, 10% burn.</b></p>
         <div class="cabar"><span class="lbl">CA</span><span class="ca" id="ca" title="Copy the contract address">coming soon</span><button class="btn sm solid" id="copy">Copy</button></div>
-        <div class="btns"><a class="btn solid" id="herobuy" href="https://pump.fun" target="_blank" rel="noopener">Buy on pump.fun</a><a class="btn" href="#how">How it works</a><a class="btn" id="x" href="https://x.com" target="_blank" rel="noopener">X</a></div>
+        <div class="btns"><a class="btn solid" id="herobuy" href="https://pump.fun" target="_blank" rel="noopener">Buy on pump.fun</a><a class="btn" href="/dashboard">Dashboard</a><a class="btn" href="/community">Vote</a><a class="btn" id="x" href="https://x.com/soltrashpanda_" target="_blank" rel="noopener">X</a></div>
       </div>
       <div class="stage">
         <div class="top"><span><i></i><span id="status">engine warming up</span></span><span>50 / 20 / 20 / 10</span></div>
@@ -240,7 +240,7 @@
     <div class="spec">
       <div class="row"><b>50% liquidity</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu" target="_blank" rel="noopener">liquidity reserve wallet</a>. Once the coin trades on PumpSwap, the engine uses it: it buys $SCRAP with about half, deposits both sides into the pool and burns the LP tokens, so that liquidity can never be pulled.</p><span class="tag" id="s-lp">0 SOL</span></div>
       <div class="row"><b>20% community airdrop</b><p>Buys $SCRAP and sends it to the top 20 holders, pro rata to what they hold. The curve, pools and the project wallets are excluded.</p><span class="tag" id="s-air">0</span></div>
-      <div class="row"><b>20% meme treasury</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96" target="_blank" rel="noopener">treasury wallet</a>. It pays the Recycle a Rug prizes and whatever the weekly Dumpster Dive vote decides: more burns or a donation to animal shelters. Team-held for now, not a multisig yet.</p><span class="tag" id="s-tr">0 SOL</span></div>
+      <div class="row"><b>20% meme treasury</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96" target="_blank" rel="noopener">treasury wallet</a>. Every week holders <a class="u" href="/community">vote</a> on a quarter of it (burn more, or donate to animal shelters) and a tenth buys the Recycle a Rug prize. The engine settles each week by itself. It is a single wallet, not a multisig.</p><span class="tag" id="s-tr">0 SOL</span></div>
       <div class="row"><b>10% burn</b><p>Buys $SCRAP and burns it. Only what the engine itself bought is ever burned.</p><span class="tag" id="s-burn">0</span></div>
       <div class="row"><b>Engine wallet</b><p><a class="u" href="https://solscan.io/account/9uhoRkqugdA5mUk1Z7xjZ4exh5Y9AhMpin9SRV6vCYKA" target="_blank" rel="noopener">9uho...CYKA</a> receives the fees and signs every transaction. It keeps 0.01 SOL for transaction fees and nothing else.</p><span class="tag">gas only</span></div>
     </div>
@@ -258,9 +258,18 @@
       <div class="row"><b>50 / 20 / 20 / 10 split</b><p>Applied to the creator fees instead of the supply: liquidity, holder airdrop, meme treasury, burn.</p><span class="tag">engine</span></div>
       <div class="row"><b>Fast, cheap airdrops</b><p>20% of every claim reaches the top holders as $SCRAP, every 3 minutes.</p><span class="tag">engine</span></div>
       <div class="row"><b>LP burned</b><p>The liquidity share is deposited into the PumpSwap pool after every dive and the LP tokens are burned in the same round.</p><span class="tag">engine</span></div>
-      <div class="row"><b>Recycle a rug</b><p>Holders submit failed memecoin charts, the community roasts them, best roast wins $SCRAP. Paid from the treasury.</p><span class="tag plan">next</span></div>
-      <div class="row"><b>Weekly Dumpster Dive vote</b><p>Holders vote on burning more or donating a slice of the treasury to animal shelters.</p><span class="tag plan">next</span></div>
-      <div class="row"><b>Scrap Badge</b><p>A compressed NFT badge for dumpster-dive streaks.</p><span class="tag plan">later</span></div>
+      <div class="row"><b>Recycle a rug</b><p>Holders name a dead memecoin and roast it, holders vote, the best roast of the week wins $SCRAP bought by the treasury. <a class="u" href="/community">Roast one</a>.</p><span class="tag">live</span></div>
+      <div class="row"><b>Weekly Dumpster Dive vote</b><p>Holders vote, by signing a message, on burning more or donating a slice of the treasury to animal shelters. No shelter wallet is set yet: a donate result waits in the treasury.</p><span class="tag">live</span></div>
+      <div class="row"><b>Scrap Badge</b><p>Streaks of weeks in which a wallet voted or roasted earn a badge tier. Tracked by the engine; minting them as compressed NFTs is not built.</p><span class="tag plan">partly</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="more">
+  <div class="wrap">
+    <div class="spec">
+      <div class="row"><b>Dashboard</b><p>Price, fees claimed, the split to date, wallets, every dive and every liquidity round with its transactions.</p><a class="btn sm" href="/dashboard" style="justify-self:end">Open</a></div>
+      <div class="row"><b>Community</b><p>This week's Dumpster Dive vote, Recycle a Rug and your Scrap Badge streak.</p><a class="btn sm" href="/community" style="justify-self:end">Open</a></div>
     </div>
   </div>
 </section>
@@ -294,12 +303,12 @@
 </div>
 </main>
 
-<footer><div class="wrap"><span>$SCRAP · the Solana Trash Panda · not financial advice</span><span><a href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a> · <a id="fx" href="https://x.com" target="_blank" rel="noopener">X</a></span></div></footer>
+<footer><div class="wrap"><span>$SCRAP · the Solana Trash Panda · not financial advice</span><span><a href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a> · <a href="/dashboard">Dashboard</a> · <a href="/community">Community</a> · <a id="fx" href="https://x.com/soltrashpanda_" target="_blank" rel="noopener">X</a></span></div></footer>
 <div class="toast" id="toast"></div>
 
 <script>
 // ---- config: set the CA and the X link when the coin is live ----
-const CONFIG = { ca: "7x8HCyf5Z3JYWXmC7p6C4w11Hw6JAXFEiZy6PCDBpump", x: "", cycleSec: 180 };
+const CONFIG = { ca: "7x8HCyf5Z3JYWXmC7p6C4w11Hw6JAXFEiZy6PCDBpump", x: "https://x.com/soltrashpanda_", cycleSec: 180 };
 
 const $ = (id) => document.getElementById(id);
 function setCa(ca) {

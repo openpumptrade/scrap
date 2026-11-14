@@ -93,5 +93,19 @@ config.liquidity = {
   minDepositSol: num(process.env.LP_MIN_DEPOSIT_SOL, 0.1),  // a smaller reserve waits
   reserveSol: num(process.env.LP_RESERVE_SOL, 0.02),        // SOL the reserve wallet keeps for fees and account rent
   buyBps: num(process.env.LP_BUY_BPS, 4800),                // share of a round spent on the coin; the rest pairs it
+  maxPoolBps: num(process.env.LP_MAX_POOL_BPS, 300),        // a round is at most this share of the SOL already in the pool
 };
 if (config.lpKeypair && config.lpWallet && config.lpKeypair.publicKey.toBase58() !== config.lpWallet) throw new Error("LP_WALLET_PRIVATE_KEY does not match LP_WALLET");
+
+// Community rounds (weekly vote, roast contest). With the treasury key the engine settles each week
+// by itself; without it, votes are still collected and shown.
+config.treasuryKeypair = parseKeypair(process.env.TREASURY_WALLET_PRIVATE_KEY);
+config.donationWallet = (process.env.DONATION_WALLET || "").trim(); // where a "donate" outcome is sent; empty keeps it in the treasury
+config.adminToken = (process.env.ADMIN_TOKEN || "").trim();          // moderation of roasts
+config.community = {
+  minHold: num(process.env.COMMUNITY_MIN_HOLD, 100_000),      // tokens a wallet must hold to vote or roast
+  voteSliceBps: num(process.env.VOTE_SLICE_BPS, 2500),        // share of the treasury the weekly vote decides on
+  prizeBps: num(process.env.ROAST_PRIZE_BPS, 1000),           // share of the treasury that buys the roast prize
+  reserveSol: num(process.env.TREASURY_RESERVE_SOL, 0.02),    // SOL the treasury keeps for fees
+};
+if (config.treasuryKeypair && config.treasuryWallet && config.treasuryKeypair.publicKey.toBase58() !== config.treasuryWallet) throw new Error("TREASURY_WALLET_PRIVATE_KEY does not match TREASURY_WALLET");

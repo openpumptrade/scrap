@@ -5,9 +5,11 @@ import cors from "cors";
 import compression from "compression";
 import { config, mode } from "./config.js";
 import { sql } from "./db.js";
+import { getSolBalance } from "./solana.js";
 import { coin, pot, engineWallet } from "./tracker.js";
 import { state, rowToJson } from "./diver.js";
 import { lpState } from "./liquidity.js";
+import { mountCommunity } from "./community.js";
 import { fetchCandles, fetchTrades, taxConfig } from "./pumpfun.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -22,18 +24,30 @@ async function cached(key, ttlMs, fn) {
 }
 
 export const live = { started: false };
+
+/// SOL sitting in each project wallet right now (cached by the caller).
+async function walletBalances() {
+  const read = async (a) => (a ? await getSolBalance(a) : null);
+  const [engine, lp, treasury] = await Promise.all([read(engineWallet()), read(config.lpWallet), read(config.treasuryWallet)]);
+  return { engine, lp, treasury };
+}
+
+/// Keep at most `max` evenly spaced points: history endpoints must not grow with the age of the coin.
+const thin = (rows, max = 500) => { const step = Math.ceil(rows.length / max); return step <= 1 ? rows : rows.filter((_, i) => i % step === 0 || i === rows.length - 1); };
 export function startApi() {
   const app = express();
   app.use(cors());
   app.use(compression());
   app.set("etag", false);
   // Short edge cache: a proxy in front (s-maxage) answers many viewers with one origin fetch.
-  const EDGE_TTL = { "/token": 5, "/trades": 10, "/dives": 20, "/chart": 15 };
+  const EDGE_TTL = { "/community": 8, "/token": 5, "/trades": 10, "/dives": 20, "/chart": 15, "/liquidity": 20 };
   app.use("/api", (req, res, next) => {
     const ttl = EDGE_TTL[req.path];
     res.set("cache-control", ttl ? `public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=${ttl * 4}` : "no-store");
     next();
   });
+
+  mountCommunity(app);
 
   app.get("/api/health", (_req, res) => res.json({ ok: true, mode: mode(), scheduler: config.schedulerEnabled, started: live.started, coin: coin.symbol, quote: coin.quote?.symbol || null, taxBps: coin.taxBps, nextDiveAt: state.nextDiveAt }));
 
@@ -54,11 +68,19 @@ export function startApi() {
       burnedPct: coin.supply0 ? coin.burned / coin.supply0 : 0, marketUpdatedAt: coin.updatedAt,
       pot: { unclaimed: pot.unclaimed, unclaimedUsd: pot.unclaimedUsd, wallet: pot.wallet, spendable: pot.spendable, walletSol: pot.walletSol, walletTokens: pot.walletTokens, estTokens: pot.estTokens, updatedAt: pot.updatedAt, error: pot.error },
       nextDiveAt: state.nextDiveAt, genesis: state.genesis, progress: state.progress, lastNote: state.lastNote,
+      totalClaimed: state.totalClaimed, totalClaimedUsd: state.totalClaimedUsd, totalAirdropTransfers: state.totalAirdropTransfers, wallets: await cached("wallets", 30_000, walletBalances).catch(() => null),
       liquidity: lpState, split: config.split, lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet, totalLp: state.totalLp, totalTreasury: state.totalTreasury, totalAirdropped: state.totalAirdropped,
       divesRun: state.divesRun, totalSpentQuote: state.totalSpentQuote, totalSpentUsd: state.totalSpentUsd, totalBurned: state.totalBurned, dryTotals: state.dryTotals, lastDive: state.lastDive,
       links: { pump: `https://pump.fun/coin/${coin.mint}`, explorer: `https://solscan.io/token/${coin.mint}`, wallet: `https://solscan.io/account/${engineWallet()}`, tx: "https://solscan.io/tx/", quote: coin.quote?.isSol ? "" : `https://solscan.io/token/${coin.quote.mint}` },
       now: now(),
     });
+  });
+
+  /// liquidity rounds: each one is a buy, a pool deposit and the burn of the LP tokens it returned
+  app.get("/api/liquidity", async (req, res) => {
+    const limit = Math.min(100, Number(req.query.limit || 30));
+    const rows = await sql`select * from lp_rounds order by id desc limit ${limit}`;
+    res.json(rows.map((r) => ({ id: r.id, t: r.ts, status: r.status, spentSol: r.spent_sol, tokensPaired: r.base_deposited, buyTx: r.buy_tx, depositTx: r.deposit_tx, burnTx: r.burn_tx, note: r.note })));
   });
 
   app.get("/api/dives", async (req, res) => {
@@ -79,7 +101,7 @@ export function startApi() {
       res.json({ source: "pump.fun", interval, points, dives, priceUsd: coin.priceUsd, mcapUsd: coin.mcapUsd, supply0: coin.supply0, supply: coin.supply, now: now() });
     } catch (err) {
       const rows = await sql`select ts, price_usd from samples order by ts`;
-      res.json({ source: "samples", interval, points: rows.map((r) => ({ t: r.ts, c: r.price_usd, o: r.price_usd, h: r.price_usd, l: r.price_usd, v: 0 })), dives, priceUsd: coin.priceUsd, mcapUsd: coin.mcapUsd, supply0: coin.supply0, supply: coin.supply, now: now(), error: String(err.message).slice(0, 100) });
+      res.json({ source: "samples", interval, points: thin(rows).map((r) => ({ t: r.ts, c: r.price_usd })), dives, priceUsd: coin.priceUsd, mcapUsd: coin.mcapUsd, supply0: coin.supply0, supply: coin.supply, now: now(), error: String(err.message).slice(0, 100) });
     }
   });
 
@@ -102,6 +124,6 @@ export function startApi() {
     } catch (err) { res.json([]); }
   });
 
-  app.use(express.static(path.join(here, "..", "public"), { etag: false, maxAge: 0 }));
+  app.use(express.static(path.join(here, "..", "public"), { etag: false, maxAge: 0, extensions: ["html"] }));
   app.listen(config.port, () => console.log(`[api] listening on :${config.port}`));
 }

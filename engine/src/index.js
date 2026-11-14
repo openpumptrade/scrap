@@ -1,5 +1,6 @@
 import { config, mode } from "./config.js";
 import { ensureSchema } from "./db.js";
+import { ensureCommunitySchema } from "./community.js";
 import { coin, loadCoin, startTracker } from "./tracker.js";
 import { startDiver } from "./diver.js";
 import { startApi, live } from "./api.js";
@@ -9,6 +10,7 @@ import { startApi, live } from "./api.js";
 
 async function main() {
   await ensureSchema();
+  await ensureCommunitySchema();
   startApi();
   if (!config.mint) { console.log("[boot] no TOKEN_MINT — serving the page in 'not started' mode"); return; }
   // the CA can be set before the coin exists on-chain: wait for its curve, then switch on by itself

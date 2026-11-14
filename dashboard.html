@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>$SCRAP · dashboard</title>
+<meta name="description" content="Live numbers of the $SCRAP engine: creator fees claimed, the 50/20/20/10 split, liquidity locked, airdrops, burns, wallets and every transaction.">
+<meta property="og:title" content="$SCRAP · dashboard">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #000; --fg: #fff; --dim: #8a8a8a; --faint: #2a2a2a; --panel: #0b0b0b; --pad: clamp(14px, 3vw, 32px); --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 400 14px/1.55 var(--mono); -webkit-font-smoothing: antialiased; overflow-x: clip; }
+  a { color: inherit; text-decoration: none; }
+  a.u, td a { text-decoration: underline; }
+  h1, h2 { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  h1 { font-size: clamp(24px, 3.4vw, 40px); }
+  h2 { font-size: 16px; letter-spacing: 0; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 var(--pad); }
+  .dim { color: var(--dim); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border: 1px solid var(--fg); font: 700 13px/1 var(--mono); white-space: nowrap; }
+  .btn:hover, .btn.solid { background: var(--fg); color: var(--bg); }
+  .nav { position: sticky; top: 0; z-index: 20; background: rgba(0,0,0,.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--faint); }
+  .nav .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+  .brand { font-weight: 800; font-size: 17px; margin-right: auto; }
+  .nav nav { display: flex; gap: 18px; font-size: 13px; color: var(--dim); }
+  .nav nav a:hover, .nav nav a.on { color: var(--fg); }
+
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: clamp(24px, 4vw, 44px) 0 20px; }
+  .head p { margin: 8px 0 0; color: var(--dim); max-width: 70ch; }
+  .state { font-size: 12px; color: var(--dim); text-align: right; }
+  .state i { display: inline-block; width: 7px; height: 7px; background: var(--fg); margin-right: 8px; animation: blink 1.2s steps(2) infinite; }
+  @keyframes blink { to { opacity: 0; } }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--faint); border-right: 0; border-bottom: 0; }
+  .tile { padding: 16px; border-right: 1px solid var(--faint); border-bottom: 1px solid var(--faint); min-width: 0; }
+  .tile small { display: block; color: var(--dim); font-size: 12px; }
+  .tile b { display: block; margin-top: 8px; font-size: clamp(20px, 2.2vw, 28px); font-weight: 800; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .tile span { display: block; margin-top: 6px; font-size: 12px; color: var(--dim); }
+
+  .cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-top: 16px; }
+  .box { border: 1px solid var(--faint); min-width: 0; }
+  .box > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--faint); }
+  .box > header small { color: var(--dim); font-size: 12px; }
+  .box .body { padding: 16px; }
+  canvas { display: block; width: 100%; height: 260px; }
+  pre { margin: 0; font: inherit; white-space: pre; overflow-x: auto; line-height: 1.5; }
+  .bars .b { display: grid; grid-template-columns: 130px 1fr 150px; gap: 12px; align-items: center; padding: 7px 0; font-size: 13px; }
+  .bars .track { height: 14px; background: #161616; position: relative; }
+  .bars .track i { position: absolute; inset: 0 auto 0 0; background: var(--fg); width: 0; transition: width .6s; }
+  .bars .track u { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--dim); }
+  .bars .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 90px; }
+  .spark i { flex: 1; min-width: 2px; background: var(--fg); }
+  .spark i.z { background: var(--faint); }
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--faint); }
+  th { color: var(--dim); font-weight: 500; font-size: 12px; }
+  th:first-child, td:first-child, th.l, td.l { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+  td.note { color: var(--dim); white-space: normal; min-width: 200px; text-align: left; }
+  .empty { padding: 28px 16px; text-align: center; color: var(--dim); }
+  footer { padding: 30px 0 44px; color: var(--dim); font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr 1fr; } .cols { grid-template-columns: 1fr; } .nav nav { display: none; } }
+  @media (max-width: 520px) { .bars .b { grid-template-columns: 90px 1fr; } .bars .v { grid-column: 1 / -1; text-align: left; color: var(--dim); } .state { text-align: left; } }
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/">$SCRAP</a>
+    <nav><a href="/">home</a><a class="on" href="/dashboard">dashboard</a><a href="/community">community</a><a href="/#split">split</a><a href="/#faq">faq</a></nav>
+    <a class="btn" id="x" href="https://x.com/soltrashpanda_" target="_blank" rel="noopener">X</a>
+    <a class="btn solid" id="buy" href="https://pump.fun/coin/7x8HCyf5Z3JYWXmC7p6C4w11Hw6JAXFEiZy6PCDBpump" target="_blank" rel="noopener">Buy $SCRAP</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="head">
+    <div><h1>Engine dashboard</h1><p>Everything the engine has done with the creator fees, read from its own ledger. Every figure links back to a transaction further down.</p></div>
+    <div class="state"><div><i></i><span id="status">connecting</span></div><div id="next">next dive -:--</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="tile"><small>price</small><b id="k-price">-</b><span id="k-mcap">market cap -</span></div>
+    <div class="tile"><small>fees claimed</small><b id="k-claimed">-</b><span id="k-claimedusd">-</span></div>
+    <div class="tile"><small>dives</small><b id="k-dives">-</b><span id="k-pot">-</span></div>
+    <div class="tile"><small>supply</small><b id="k-supply">-</b><span id="k-supplysub">-</span></div>
+    <div class="tile"><small>SOL locked as liquidity</small><b id="k-locked">-</b><span id="k-lockedsub">-</span></div>
+    <div class="tile"><small>$SCRAP airdropped</small><b id="k-air">-</b><span id="k-airsub">-</span></div>
+    <div class="tile"><small>$SCRAP burned by the engine</small><b id="k-burned">-</b><span id="k-burnedsub">-</span></div>
+    <div class="tile"><small>SOL sent to treasury</small><b id="k-tr">-</b><span id="k-trsub">-</span></div>
+  </div>
+
+  <div class="cols">
+    <section class="box"><header><h2>Price</h2><small id="c-sub">dots mark dives</small></header><div class="body"><canvas id="chart"></canvas></div></section>
+    <section class="box"><header><h2>Last dive</h2><small id="f-when">-</small></header><div class="body"><pre id="flow">waiting for the first dive</pre></div></section>
+  </div>
+
+  <div class="cols">
+    <section class="box"><header><h2>Where the fees went</h2><small>bar = share of all claimed SOL · tick = target</small></header><div class="body bars" id="bars"></div></section>
+    <section class="box"><header><h2>Fees claimed per dive</h2><small id="s-sub">last 40 dives</small></header><div class="body"><div class="spark" id="spark"></div></div></section>
+  </div>
+
+  <section class="box" style="margin-top:16px"><header><h2>Wallets</h2><small>balances right now</small></header><div class="scroll"><table><thead><tr><th>wallet</th><th class="l">role</th><th>SOL</th><th>address</th></tr></thead><tbody id="wallets"><tr><td colspan="4" class="empty">loading</td></tr></tbody></table></div></section>
+
+  <section class="box" style="margin-top:16px"><header><h2>Dive log</h2><small>one row per cycle, newest first</small></header><div class="scroll"><table><thead><tr><th>#</th><th class="l">time (UTC)</th><th>claimed</th><th>to LP</th><th>to treasury</th><th>bought with</th><th>airdropped</th><th>holders</th><th>burned</th><th class="l">transactions</th></tr></thead><tbody id="dives"><tr><td colspan="10" class="empty">loading</td></tr></tbody></table></div></section>
+
+  <section class="box" style="margin-top:16px"><header><h2>Liquidity rounds</h2><small>buy, deposit into the PumpSwap pool, burn the LP tokens</small></header><div class="scroll"><table><thead><tr><th>#</th><th class="l">time (UTC)</th><th class="l">status</th><th>SOL added</th><th>$SCRAP paired</th><th class="l">transactions</th><th class="l">note</th></tr></thead><tbody id="lp"><tr><td colspan="7" class="empty">loading</td></tr></tbody></table></div></section>
+</main>
+
+<footer><div class="wrap"><span>$SCRAP · the Solana Trash Panda · not financial advice</span><span><a class="u" href="https://github.com/openpumptrade/scrap" target="_blank" rel="noopener">GitHub</a> · <a class="u" href="https://x.com/soltrashpanda_" target="_blank" rel="noopener">X</a></span></div></footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const big = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(Math.round(n)));
+const sol = (n) => (n >= 100 ? n.toFixed(1) : n >= 1 ? n.toFixed(3) : n.toFixed(4));
+const usd = (n) => "$" + (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : n.toFixed(2));
+const price = (p) => (p > 0 ? "$" + (p < 0.01 ? p.toFixed(8).replace(/0+$/, "") : p.toFixed(4)) : "-");
+const when = (t) => new Date(t * 1000).toISOString().slice(5, 16).replace("T", " ");
+const okSig = (s) => /^[1-9A-HJ-NP-Za-km-z]{60,90}$/.test(String(s || ""));
+const okKey = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(s || ""));
+const tx = (sig, label) => (okSig(sig) ? `<a href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">${label}</a>` : "");
+const get = async (u) => { const r = await fetch(u, { cache: "no-store" }); if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) throw new Error(u); return r.json(); };
+
+let T = null, nextAt = 0, cycle = 180;
+setInterval(() => {
+  if (!nextAt) return;
+  const left = Math.max(0, Math.min(cycle, Math.ceil(nextAt - Date.now() / 1000)));
+  $("next").textContent = "next dive " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+}, 1000);
+
+async function loadToken() {
+  try {
+    const d = T = await get("/api/token");
+    if (!d.started) { $("status").textContent = "engine waiting for the coin"; return; }
+    const live = !d.dryRun;
+    $("status").textContent = live ? "engine live · " + (d.graduated ? "PumpSwap" : "bonding curve") : "engine in watch mode";
+    nextAt = d.nextDiveAt; cycle = d.rules.intervalSec;
+    $("k-price").textContent = price(d.priceUsd);
+    $("k-mcap").textContent = "market cap " + usd(d.mcapUsd || 0);
+    $("k-claimed").textContent = sol(d.totalClaimed || 0) + " SOL";
+    $("k-claimedusd").textContent = usd(d.totalClaimedUsd || 0) + " at claim time";
+    $("k-dives").textContent = (d.divesRun || 0).toLocaleString();
+    $("k-pot").textContent = sol(d.pot?.unclaimed || 0) + " SOL waiting for the next one";
+    $("k-supply").textContent = big(d.supply || 0);
+    $("k-supplysub").textContent = big(Math.max(0, (d.supply0 || 0) - (d.supply || 0))) + " burned in total, by anyone";
+    $("k-locked").textContent = sol(d.liquidity?.depositedSol || 0) + " SOL";
+    $("k-lockedsub").textContent = (d.liquidity?.rounds || 0) + " rounds · " + sol(d.wallets?.lp ?? 0) + " SOL in the reserve";
+    $("k-air").textContent = big(d.totalAirdropped || 0);
+    $("k-airsub").textContent = (d.totalAirdropTransfers || 0).toLocaleString() + " transfers to holders";
+    $("k-burned").textContent = big(d.totalBurned || 0);
+    $("k-burnedsub").textContent = d.supply0 ? ((d.totalBurned / d.supply0) * 100).toFixed(3) + "% of the original supply" : "-";
+    $("k-tr").textContent = sol(d.totalTreasury || 0) + " SOL";
+    $("k-trsub").textContent = sol(d.wallets?.treasury ?? 0) + " SOL in the wallet now";
+    if (okKey(d.mint)) $("buy").href = "https://pump.fun/coin/" + d.mint;
+    bars(d); wallets(d);
+  } catch { $("status").textContent = "engine unreachable"; }
+}
+
+function bars(d) {
+  const claimed = d.totalClaimed || 0, s = d.split || {};
+  const buy = Math.max(0, claimed - (d.totalLp || 0) - (d.totalTreasury || 0)); // what was left for the one buy
+  const both = (s.airdrop || 0) + (s.burn || 0) || 1;
+  const rows = [
+    ["liquidity", d.totalLp || 0, s.lp || 0, sol(d.totalLp || 0) + " SOL"],
+    ["treasury", d.totalTreasury || 0, s.treasury || 0, sol(d.totalTreasury || 0) + " SOL"],
+    ["airdrop buy", (buy * (s.airdrop || 0)) / both, s.airdrop || 0, big(d.totalAirdropped || 0) + " $SCRAP"],
+    ["burn buy", (buy * (s.burn || 0)) / both, s.burn || 0, big(d.totalBurned || 0) + " $SCRAP"],
+  ];
+  $("bars").innerHTML = rows.map(([name, v, bps, label]) => {
+    const pct = claimed > 0 ? (100 * v) / claimed : 0;
+    return `<div class="b"><span>${name}</span><span class="track"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i><u style="left:${bps / 100}%"></u></span><span class="v">${pct.toFixed(1)}% · ${esc(label)}</span></div>`;
+  }).join("") + `<p class="dim" style="margin:12px 0 0;font-size:12px">The first dives ran before the split existed and burned everything, so the burn bar sits above its 10% target.</p>`;
+}
+
+function wallets(d) {
+  const w = d.wallets || {}, rows = [
+    ["engine", "receives the fees, signs every dive, keeps a gas reserve", w.engine, d.wallet],
+    ["liquidity reserve", "holds the 50% share until the next pool deposit", w.lp, d.lpWallet],
+    ["treasury", "holds the 20% share for the roast prize and the weekly vote", w.treasury, d.treasuryWallet],
+  ];
+  $("wallets").innerHTML = rows.filter((r) => okKey(r[3])).map(([n, role, bal, a]) => `<tr><td>${n}</td><td class="l dim">${role}</td><td>${bal == null ? "-" : sol(bal)}</td><td><a href="https://solscan.io/account/${a}" target="_blank" rel="noopener">${a.slice(0, 4)}...${a.slice(-4)}</a></td></tr>`).join("");
+}
+
+let DIVES = [];
+async function loadDives() {
+  try {
+    const all = await get("/api/dives?limit=40");
+    DIVES = all.filter((x) => !x.dry);
+    const done = DIVES.filter((x) => x.status === "done");
+    $("dives").innerHTML = DIVES.length ? DIVES.map((x) => `<tr><td>${Number(x.id)}</td><td class="l">${when(x.t)}</td><td>${sol(+x.claimedQuote || 0)}</td><td>${sol(+x.lpQuote || 0)}</td><td>${sol(+x.treasuryQuote || 0)}</td><td>${sol(+x.spentQuote || 0)}</td><td>${big(+x.tokensAirdropped || 0)}</td><td>${Number(x.airdropRecipients) || 0}</td><td>${big(+x.tokensBurned || 0)}</td><td class="l">${x.status === "done" ? [tx(x.claimTx, "claim"), tx(x.splitTx, "split"), tx(x.buyTx, "buy"), tx(x.airdropTx, "airdrop"), tx(x.burnTx, "burn")].filter(Boolean).join(" ") : `<span class="dim">${esc(x.status)}</span>`}</td></tr>`).join("") : `<tr><td colspan="10" class="empty">no dives yet</td></tr>`;
+    // sparkline, oldest on the left
+    const series = DIVES.slice().reverse(), max = Math.max(...series.map((x) => +x.claimedQuote || 0), 1e-9);
+    $("spark").innerHTML = series.map((x) => { const v = +x.claimedQuote || 0; return `<i class="${v ? "" : "z"}" style="height:${Math.max(2, (100 * v) / max).toFixed(1)}%" title="#${Number(x.id)} · ${sol(v)} SOL"></i>`; }).join("");
+    $("s-sub").textContent = "last " + series.length + " dives · peak " + sol(max) + " SOL";
+    const last = done[0];
+    if (last) {
+      $("f-when").textContent = "#" + Number(last.id) + " · " + when(last.t) + " UTC";
+      const c = +last.claimedQuote || 0, pad = (s, n) => String(s).padEnd(n);
+      $("flow").textContent =
+`claimed ${sol(c)} SOL
+   |
+   +-- ${pad(sol(+last.lpQuote || 0) + " SOL", 14)} -> liquidity reserve
+   +-- ${pad(sol(+last.treasuryQuote || 0) + " SOL", 14)} -> treasury
+   +-- ${pad(sol(+last.spentQuote || 0) + " SOL", 14)} -> one buy on ${last.venue || "-"}
+          |
+          +-- ${pad(big(+last.tokensAirdropped || 0), 9)} $SCRAP -> ${Number(last.airdropRecipients) || 0} holders
+          +-- ${pad(big(+last.tokensBurned || 0), 9)} $SCRAP -> burned`;
+    }
+  } catch {}
+}
+
+async function loadLp() {
+  try {
+    const rows = await get("/api/liquidity?limit=30");
+    $("lp").innerHTML = rows.length ? rows.map((x) => `<tr><td>${Number(x.id)}</td><td class="l">${when(x.t)}</td><td class="l">${esc(x.status)}</td><td>${sol(+x.spentSol || 0)}</td><td>${big(+x.tokensPaired || 0)}</td><td class="l">${[tx(x.buyTx, "buy"), tx(x.depositTx, "deposit"), tx(x.burnTx, "burn LP")].filter(Boolean).join(" ")}</td><td class="note">${esc(x.note)}</td></tr>`).join("") : `<tr><td colspan="7" class="empty">no liquidity rounds yet: they start once the coin trades on PumpSwap and the reserve holds enough SOL</td></tr>`;
+  } catch {}
+}
+
+const cv = $("chart"), g = cv.getContext("2d");
+async function loadChart() {
+  try {
+    const d = await get("/api/chart?i=5m");
+    const pts = (d.points || []).filter((p) => p.c > 0);
+    const dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    g.font = "12px 'JetBrains Mono', monospace"; g.fillStyle = "#8a8a8a";
+    if (pts.length < 2) { g.fillText("not enough price history yet", 8, 20); return; }
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t, lo = Math.min(...pts.map((p) => p.c)), hi = Math.max(...pts.map((p) => p.c));
+    const L = 8, R = 8, Tp = 18, B = 22, x = (t) => L + ((t - t0) / Math.max(1, t1 - t0)) * (W - L - R), y = (v) => Tp + (1 - (v - lo) / Math.max(1e-18, hi - lo)) * (H - Tp - B);
+    g.strokeStyle = "#2a2a2a"; g.lineWidth = 1;
+    for (let i = 0; i <= 3; i++) { const yy = Tp + (i / 3) * (H - Tp - B); g.beginPath(); g.moveTo(L, yy); g.lineTo(W - R, yy); g.stroke(); }
+    g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(x(p.t), y(p.c)) : g.moveTo(x(p.t), y(p.c)))); g.stroke();
+    // a dot per dive, on the price line
+    const at = (t) => { let lo2 = 0; for (let i = 0; i < pts.length; i++) if (pts[i].t <= t) lo2 = i; return pts[lo2].c; };
+    g.fillStyle = "#fff"; (d.dives || []).filter((b) => !b.dry && b.t >= t0 && b.t <= t1).forEach((b) => { g.beginPath(); g.arc(x(b.t), y(at(b.t)), 2.5, 0, 6.3); g.fill(); });
+    g.fillStyle = "#8a8a8a"; g.fillText(price(hi), L, 12); g.fillText(price(lo), L, H - 6);
+    const span = new Date(t0 * 1000).toISOString().slice(11, 16) + " to " + new Date(t1 * 1000).toISOString().slice(11, 16) + " UTC";
+    g.fillText(span, W - R - g.measureText(span).width, H - 6);
+    $("c-sub").textContent = "dots mark dives · " + pts.length + " samples";
+  } catch {}
+}
+
+loadToken(); loadDives(); loadLp(); loadChart();
+setInterval(loadToken, 10000); setInterval(() => { loadDives(); loadLp(); loadChart(); }, 30000);
+addEventListener("resize", loadChart);
+</script>
+</body>
+</html>

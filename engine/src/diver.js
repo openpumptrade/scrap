@@ -3,6 +3,7 @@ import { sql, getMeta, setMeta } from "./db.js";
 import { getSolBalance, getSolUsd, sendSol } from "./solana.js";
 import { allocate, splitBought } from "./split.js";
 import { startLiquidity, liquidityRound } from "./liquidity.js";
+import { communityTick } from "./community.js";
 import { distributeSharedFees, burnAmount, topHolders, airdropTokens, claimCreatorFees, curveBuy, pumpswapBuy, jupiterBuy, mintProgramId, tokenBalanceRaw, tokenBalanceRawSettled, totalSupply, isGraduated, creatorVaultBalancesRaw, quoteBalance, toRaw } from "./pumpfun.js";
 import { coin, pot, readPot } from "./tracker.js";
 
@@ -50,12 +51,13 @@ export async function startDiver() {
 }
 
 async function loadHistory() {
-  const [agg] = await sql`select count(*)::int as n, coalesce(sum(spent_quote), 0) as spent, coalesce(sum(spent_quote * coalesce(quote_usd, 0)), 0) as usd, coalesce(sum(tokens_burned), 0) as burned, coalesce(sum(lp_quote), 0) as lp, coalesce(sum(treasury_quote), 0) as treasury, coalesce(sum(tokens_airdropped), 0) as airdropped from dives where status = 'done' and dry = false`;
+  const [agg] = await sql`select count(*)::int as n, coalesce(sum(spent_quote), 0) as spent, coalesce(sum(spent_quote * coalesce(quote_usd, 0)), 0) as usd, coalesce(sum(tokens_burned), 0) as burned, coalesce(sum(claimed_quote), 0) as claimed, coalesce(sum(claimed_quote * coalesce(quote_usd, 0)), 0) as claimed_usd, coalesce(sum(airdrop_recipients), 0) as drops, coalesce(sum(lp_quote), 0) as lp, coalesce(sum(treasury_quote), 0) as treasury, coalesce(sum(tokens_airdropped), 0) as airdropped from dives where status = 'done' and dry = false`;
   const [dry] = await sql`select count(*)::int as n, coalesce(sum(spent_quote), 0) as spent, coalesce(sum(spent_quote * coalesce(quote_usd, 0)), 0) as usd, coalesce(sum(tokens_burned), 0) as burned from dives where status = 'done' and dry = true`;
   state.divesRun = agg.n;
   state.totalSpentQuote = Number(agg.spent);
   state.totalSpentUsd = Number(agg.usd);
   state.totalBurned = Number(agg.burned);
+  state.totalClaimed = Number(agg.claimed); state.totalClaimedUsd = Number(agg.claimed_usd); state.totalAirdropTransfers = Number(agg.drops);
   state.totalLp = Number(agg.lp); state.totalTreasury = Number(agg.treasury); state.totalAirdropped = Number(agg.airdropped);
   state.dryTotals = { dives: dry.n, spentQuote: Number(dry.spent), spentUsd: Number(dry.usd), burned: Number(dry.burned) };
   const last = await sql`select * from dives where status in ('done', 'skipped', 'failed') order by id desc limit 1`;
@@ -75,7 +77,7 @@ async function tick() {
   if (now() < state.nextDiveAt) return;
   if (!config.schedulerEnabled) { await schedule(); return; }
   firing = true;
-  try { await runDive(); if (mode() === "bot" && !config.dryRun) await liquidityRound(sql, { graduated: (await isGraduated(config.mint)) ?? coin.graduated, pool: coin.pool || null }); }
+  try { await runDive(); if (mode() === "bot" && !config.dryRun) await liquidityRound(sql, { graduated: (await isGraduated(config.mint)) ?? coin.graduated, pool: coin.pool || null }); if (mode() === "bot" && !config.dryRun) await communityTick(); }
   catch (err) {
     const msg = String(err.message).slice(0, 160);
     console.error("[diver] dive failed:", msg);

@@ -39,6 +39,11 @@ export async function runLiquidity({ wallet, mint = config.mint, pool = null, ma
   const sol0 = BigInt(await connection.getBalance(wallet.publicKey));
   let available = sol0 - reserve;
   if (maxSol !== Infinity && available > lamports(maxSol)) available = lamports(maxSol);
+  // keep each round small against the pool: a buy that moves the price too far fails on slippage, and
+  // the reserve would only pile up. Rounds run after every dive, so a large reserve drains over a few.
+  const depth = BigInt((await amm.liquiditySolanaState(poolPk, wallet.publicKey)).poolQuoteTokenAccount.amount.toString());
+  const cap = (depth * BigInt(config.liquidity.maxPoolBps)) / 10_000n;
+  if (available > cap) available = cap;
   const held0 = await tokenBalanceRaw(me, mint, programId);
   if (available < lamports(config.liquidity.minDepositSol) && held0 === 0n) return out("skipped", `reserve holds ${Number(sol0) / 1e9} SOL, under the ${config.liquidity.minDepositSol} SOL minimum for a deposit`);
 

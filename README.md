@@ -6,6 +6,9 @@
 
 <p align="center">
   <a href="https://solanatrashpanda.fun">Website</a> ·
+  <a href="https://solanatrashpanda.fun/dashboard">Dashboard</a> ·
+  <a href="https://solanatrashpanda.fun/community">Community</a> ·
+  <a href="https://x.com/soltrashpanda_">X</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#the-split">The split</a> ·
   <a href="#run-the-engine">Run the engine</a> ·
@@ -69,10 +72,31 @@ numbers are applied to every claim of creator fees.
 Engine wallet: `9uhoRkqugdA5mUk1Z7xjZ4exh5Y9AhMpin9SRV6vCYKA`. It keeps a small SOL reserve for
 transaction fees and nothing else.
 
-What is **not** automated yet, stated plainly:
+## Community rounds
 
-- The treasury is a team-held wallet, not a multisig. It is meant to pay the "Recycle a rug" prizes and
-  whatever the weekly Dumpster Dive vote decides (more burns, or a donation to animal shelters).
+The treasury is spent by its holders, one UTC week at a time (Thursday 00:00 to Thursday 00:00).
+
+- **Weekly Dumpster Dive.** Holders vote burn or donate on 25% of the treasury. Burn: the treasury buys
+  $SCRAP and burns it. Donate: the slice is sent to `DONATION_WALLET`; while no shelter wallet is set it
+  simply stays in the treasury.
+- **Recycle a Rug.** Holders name a dead memecoin and roast it (one roast per wallet per week), holders
+  vote, and the treasury buys $SCRAP with 10% of its balance and sends it to the winner.
+- **Scrap Badge.** A streak of consecutive weeks in which a wallet voted or roasted: Scavenger (1),
+  Dumpster Diver (2), Trash Panda (4), Scrap Lord (8).
+
+How it is kept honest:
+
+- A wallet takes part by signing a plain text message. Nothing is sent on-chain by the voter.
+- A wallet needs `COMMUNITY_MIN_HOLD` tokens (default 100,000). A vote weighs what the wallet holds, and
+  at settlement it counts as the lower of the balance when voting and the balance when the week closes.
+- The engine settles a closed week once. It marks the week before paying, so a crash never pays twice.
+
+Stated plainly:
+
+- The treasury is one wallet whose key the engine holds, not a multisig.
+- No shelter wallet is configured, so a "donate" result is not paid out yet.
+- Badges are tracked in the engine's database. They are not minted as compressed NFTs.
+- Roasts are user content. They are escaped, length-limited and can be hidden with `ADMIN_TOKEN`.
 
 ## Spec vs. shipped
 
@@ -85,20 +109,23 @@ What is **not** automated yet, stated plainly:
 | 50 / 20 / 20 / 10 allocation | Engine: applied to creator fees instead of supply |
 | Fast, cheap airdrops | Engine: 20% of every claim to the top holders |
 | LP burned | Engine: the liquidity share is deposited into the pool after each dive and its LP tokens are burned |
-| "Recycle a rug" roast contest | Next: paid from the treasury, not built |
-| Weekly Dumpster Dive vote | Next: not built |
-| Scrap Badge cNFT | Later: not built |
+| "Recycle a rug" roast contest | Live: weekly, prize bought by the treasury |
+| Weekly Dumpster Dive vote | Live: burn is automatic, donate waits for a shelter wallet |
+| Scrap Badge cNFT | Partly: streaks and tiers are tracked, the cNFT mint is not built |
 
 ## Repository layout
 
 ```
-index.html, *.png      the website (static, deployed as is)
+index.html             the landing page (static, deployed as is)
+dashboard.html         live numbers: fees, split, wallets, every dive and liquidity round
+community.html         weekly vote, roast contest, badges (wallet signs a message)
 art/                   the pages that render logo.png / og.png from the ASCII mascot
 engine/                the engine: Node 20+, Express, Postgres
   src/config.js        every setting, read from the environment
   src/split.js         the fee split math (pure functions)
   src/diver.js         the dive: claim, split, one buy, airdrop, measured burn
   src/liquidity.js     the liquidity round: buy, deposit into the PumpSwap pool, burn the LP tokens
+  src/community.js     weekly vote, roast contest, streaks, signed actions, settlement
   src/pumpfun.js       pump.fun / PumpSwap / Jupiter transactions, holders, airdrop
   src/tracker.js       price, supply and fee-pot tracking
   src/api.js           JSON API + serves engine/public
@@ -139,6 +166,11 @@ mode** and executes real dives.
 | `LP_WALLET_PRIVATE_KEY` | empty | Key of `LP_WALLET`. With it the engine deposits the reserve and burns the LP tokens; without it the reserve only accumulates. |
 | `LP_MIN_DEPOSIT_SOL` | `0.1` | A smaller reserve waits for the next round. |
 | `LP_RESERVE_SOL` | `0.02` | SOL the reserve wallet keeps for fees and account rent. |
+| `TREASURY_WALLET_PRIVATE_KEY` | empty | Key of `TREASURY_WALLET`. With it the engine settles each community week; without it votes are only collected. |
+| `DONATION_WALLET` | empty | Where a "donate" result is sent. Empty keeps it in the treasury. |
+| `COMMUNITY_MIN_HOLD` | `100000` | Tokens a wallet must hold to vote or roast. |
+| `VOTE_SLICE_BPS`, `ROAST_PRIZE_BPS` | `2500`, `1000` | Share of the treasury behind the weekly vote and the roast prize. |
+| `ADMIN_TOKEN` | empty | Lets `POST /api/community/hide` hide a roast. |
 | `DIVE_INTERVAL_SEC` | `180` | Seconds between dives. |
 | `MIN_CLAIM_USD` | `0.1` | Do not claim dust. |
 | `MIN_BUY_USD` | `0.25` | A smaller buy budget rolls into the next dive. |
@@ -160,6 +192,10 @@ buys and burns.
 | `GET /api/dives` | Dive history with claim, split, buy, airdrop and burn signatures |
 | `GET /api/chart` | Price candles plus the dives to plot on them |
 | `GET /api/trades` | Recent trades, engine buys flagged |
+| `GET /api/liquidity` | Liquidity rounds with buy, deposit and LP burn signatures |
+| `GET /api/community` | This week's tallies, roasts, rules and past results |
+| `GET /api/community/me?wallet=` | A wallet's balance, votes, streak and badge |
+| `POST /api/community/vote`, `/roast`, `/roast-vote` | Signed actions |
 | `GET /api/health` | Mode, scheduler state, next dive time |
 
 ### Launch script
