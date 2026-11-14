@@ -193,7 +193,8 @@ export async function runDive() {
     }
     // spend the buy budget only, and never the gas reserve or SOL still owed to the other buckets
     const stillOwed = (await L("owed_lp")) + (await L("owed_treasury"));
-    const room = toRaw(walletQuote, 9) - toRaw(config.rules.gasReserveSol, 9) - stillOwed;
+    // the PumpSwap buy wraps the amount plus its slippage allowance, so leave that headroom in the wallet
+    const room = ((toRaw(walletQuote, 9) - toRaw(config.rules.gasReserveSol, 9) - stillOwed) * 100n) / BigInt(100 + Math.ceil(config.rules.slippagePct));
     const budget = ledger.buy < room ? ledger.buy : room;
     spend = budget > 0n ? Number(budget) / 1e9 : 0;
   }
