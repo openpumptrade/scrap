@@ -85,3 +85,13 @@ config.split = effectiveBps({
 });
 if (!config.lpWallet) console.warn("[config] LP_WALLET not set — the liquidity share is burned instead");
 if (!config.treasuryWallet) console.warn("[config] TREASURY_WALLET not set — the treasury share is burned instead");
+
+// The liquidity reserve at work: with the reserve wallet's key the engine deposits the reserve into the
+// coin's PumpSwap pool and burns the LP tokens. Without the key the reserve only accumulates.
+config.lpKeypair = parseKeypair(process.env.LP_WALLET_PRIVATE_KEY);
+config.liquidity = {
+  minDepositSol: num(process.env.LP_MIN_DEPOSIT_SOL, 0.1),  // a smaller reserve waits
+  reserveSol: num(process.env.LP_RESERVE_SOL, 0.02),        // SOL the reserve wallet keeps for fees and account rent
+  buyBps: num(process.env.LP_BUY_BPS, 4800),                // share of a round spent on the coin; the rest pairs it
+};
+if (config.lpKeypair && config.lpWallet && config.lpKeypair.publicKey.toBase58() !== config.lpWallet) throw new Error("LP_WALLET_PRIVATE_KEY does not match LP_WALLET");

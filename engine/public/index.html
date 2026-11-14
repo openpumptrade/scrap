@@ -188,7 +188,7 @@
       <div class="stat"><small>dives</small><b id="k-dives">0</b><span>one every 3 minutes</span></div>
       <div class="stat"><small>$SCRAP burned</small><b id="k-burned">0</b><span id="k-pct">gone from supply for good</span></div>
       <div class="stat"><small>$SCRAP airdropped</small><b id="k-air">0</b><span>to the top holders</span></div>
-      <div class="stat"><small>SOL to LP + treasury</small><b id="k-sol">0</b><span id="k-solsub">liquidity reserve and meme treasury</span></div>
+      <div class="stat"><small>SOL locked as liquidity</small><b id="k-sol">0</b><span id="k-solsub">deposited, LP tokens burned</span></div>
     </div>
   </div>
 </section>
@@ -227,7 +227,7 @@
     <div class="sec-head"><span class="eyebrow">how it works</span><h2>Fees go in the can. Four things come out.</h2><p class="sub">No staking, no claiming, nothing to sign. Holding is the whole job.</p></div>
     <div class="steps">
       <div class="step"><span class="n">01</span><h3>Trades pay fees</h3><p>Every buy and sell of $SCRAP pays pump.fun creator fees, on the bonding curve and on PumpSwap after graduation. All of them are routed to the engine wallet.</p></div>
-      <div class="step"><span class="n">02</span><h3>Claim and split</h3><p>Every 3 minutes the engine claims what piled up and divides it: half to the liquidity reserve, a fifth to the meme treasury. Both leave as SOL in one transaction.</p></div>
+      <div class="step"><span class="n">02</span><h3>Claim and split</h3><p>Every 3 minutes the engine claims what piled up and divides it: half to the liquidity reserve, which is deposited into the pool with its LP tokens burned, and a fifth to the meme treasury.</p></div>
       <div class="step"><span class="n">03</span><h3>One market buy</h3><p>The remaining 30% goes into a single buy of $SCRAP on whichever venue the coin trades on: curve, PumpSwap, or Jupiter as a fallback.</p></div>
       <div class="step"><span class="n">04</span><h3>Airdrop and burn</h3><p>Two thirds of what that buy returned is sent to the top holders, pro rata. The last third is burned on-chain. The engine never sells.</p></div>
     </div>
@@ -238,7 +238,7 @@
   <div class="wrap">
     <div class="sec-head"><span class="eyebrow">the split</span><h2>50 / 20 / 20 / 10, straight from the brief.</h2><p class="sub">The AI wrote the allocation as a token split. A fair launch has no tokens to allocate, so the same numbers are applied to every claim of creator fees instead. Each bucket is a public wallet you can watch.</p></div>
     <div class="spec">
-      <div class="row"><b>50% liquidity</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu" target="_blank" rel="noopener">liquidity reserve wallet</a>. It is held there for now. Pairing it into the PumpSwap pool and burning the LP tokens comes after graduation and is not automated yet.</p><span class="tag" id="s-lp">0 SOL</span></div>
+      <div class="row"><b>50% liquidity</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu" target="_blank" rel="noopener">liquidity reserve wallet</a>. Once the coin trades on PumpSwap, the engine uses it: it buys $SCRAP with about half, deposits both sides into the pool and burns the LP tokens, so that liquidity can never be pulled.</p><span class="tag" id="s-lp">0 SOL</span></div>
       <div class="row"><b>20% community airdrop</b><p>Buys $SCRAP and sends it to the top 20 holders, pro rata to what they hold. The curve, pools and the project wallets are excluded.</p><span class="tag" id="s-air">0</span></div>
       <div class="row"><b>20% meme treasury</b><p>SOL sent to the <a class="u" href="https://solscan.io/account/GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96" target="_blank" rel="noopener">treasury wallet</a>. It pays the Recycle a Rug prizes and whatever the weekly Dumpster Dive vote decides: more burns or a donation to animal shelters. Team-held for now, not a multisig yet.</p><span class="tag" id="s-tr">0 SOL</span></div>
       <div class="row"><b>10% burn</b><p>Buys $SCRAP and burns it. Only what the engine itself bought is ever burned.</p><span class="tag" id="s-burn">0</span></div>
@@ -257,7 +257,7 @@
       <div class="row"><b>Transparent burns</b><p>The burn vault in the brief became the engine: 10% of every claim buys and burns $SCRAP, every transaction linked in the dive log.</p><span class="tag">engine</span></div>
       <div class="row"><b>50 / 20 / 20 / 10 split</b><p>Applied to the creator fees instead of the supply: liquidity, holder airdrop, meme treasury, burn.</p><span class="tag">engine</span></div>
       <div class="row"><b>Fast, cheap airdrops</b><p>20% of every claim reaches the top holders as $SCRAP, every 3 minutes.</p><span class="tag">engine</span></div>
-      <div class="row"><b>LP burned</b><p>The liquidity share accumulates in its wallet. Depositing it and burning the LP tokens is the next piece of code.</p><span class="tag plan">next</span></div>
+      <div class="row"><b>LP burned</b><p>The liquidity share is deposited into the PumpSwap pool after every dive and the LP tokens are burned in the same round.</p><span class="tag">engine</span></div>
       <div class="row"><b>Recycle a rug</b><p>Holders submit failed memecoin charts, the community roasts them, best roast wins $SCRAP. Paid from the treasury.</p><span class="tag plan">next</span></div>
       <div class="row"><b>Weekly Dumpster Dive vote</b><p>Holders vote on burning more or donating a slice of the treasury to animal shelters.</p><span class="tag plan">next</span></div>
       <div class="row"><b>Scrap Badge</b><p>A compressed NFT badge for dumpster-dive streaks.</p><span class="tag plan">later</span></div>
@@ -278,7 +278,7 @@
     <div class="faq">
       <details><summary>Did an AI really come up with this?</summary><p>Yes. The name, the mascot, the tagline and the rule set come from a single AI answer to a single prompt. Humans wrote the engine and pressed launch.</p></details>
       <details><summary>Where do the burned and airdropped tokens come from?</summary><p>From the market. 30% of every claim goes into one buy of $SCRAP. A third of what that buy returns is burned and two thirds are sent to the top holders. Nothing comes from a pre-minted stash.</p></details>
-      <details><summary>Can the engine sell or rug?</summary><p>The engine has no sell path. The code is public, so you can check: it claims, splits, buys, airdrops and burns. The liquidity reserve and the treasury are wallets held by the team, with public addresses, so every movement out of them is visible.</p></details>
+      <details><summary>Can the engine sell or rug?</summary><p>The engine has no sell path. The code is public, so you can check: it claims, splits, buys, airdrops and burns. The liquidity reserve is spent by the engine only, on pool deposits whose LP tokens are burned. The treasury is a wallet held by the team, with a public address, so every movement out of it is visible.</p></details>
       <details><summary>Who gets the airdrop?</summary><p>The 20 largest holders at the moment of each dive, in proportion to their balance. The bonding curve, liquidity pools and the project wallets are skipped. There is nothing to claim.</p></details>
       <details><summary>What happens when volume is low?</summary><p>Small pots roll over. If the fees are under the minimum, the dive is skipped and the fees wait for the next one. Everything scales with volume, there is no fixed promise.</p></details>
       <details><summary>Can I run the engine for my own coin?</summary><p>Yes. Clone the repo, set <code>TOKEN_MINT</code>, a wallet key and the split in <code>engine/.env</code> and start it. Without a key it runs in watch mode and only simulates.</p></details>
@@ -363,12 +363,13 @@ async function poll() {
     const dives = live ? d.divesRun : 0, burned = live ? d.totalBurned : 0;
     const air = live ? d.totalAirdropped || 0 : 0, lp = live ? d.totalLp || 0 : 0, tr = live ? d.totalTreasury || 0 : 0;
     const sol = (n) => (n >= 100 ? n.toFixed(0) : n >= 1 ? n.toFixed(2) : n.toFixed(3));
-    $("k-air").textContent = fmt(air); $("k-sol").textContent = sol(lp + tr);
-    $("k-solsub").textContent = sol(lp) + " SOL liquidity · " + sol(tr) + " SOL treasury";
-    $("s-lp").textContent = sol(lp) + " SOL"; $("s-tr").textContent = sol(tr) + " SOL"; $("s-air").textContent = fmt(air); $("s-burn").textContent = fmt(burned);
+    const locked = live && d.liquidity ? d.liquidity.depositedSol || 0 : 0;
+    $("k-air").textContent = fmt(air); $("k-sol").textContent = sol(locked);
+    $("k-solsub").textContent = sol(lp) + " SOL sent to the reserve · " + sol(tr) + " SOL to treasury";
+    $("s-lp").textContent = sol(locked) + " SOL locked"; $("s-tr").textContent = sol(tr) + " SOL"; $("s-air").textContent = fmt(air); $("s-burn").textContent = fmt(burned);
     $("k-dives").textContent = dives.toLocaleString();
     $("k-burned").textContent = fmt(burned);
-    if (live && d.burnedPct > 0) $("k-pct").textContent = (d.burnedPct * 100).toFixed(3) + "% of supply, gone for good";
+    if (live && d.supply > 0) $("k-pct").textContent = "by the engine · supply now " + fmt(d.supply);
     if (d.nextDiveAt) engineNext = d.nextDiveAt;
     if (lastDives !== null && dives > lastDives) dive();
     lastDives = dives;

@@ -2,6 +2,7 @@ import { config, mode } from "./config.js";
 import { sql, getMeta, setMeta } from "./db.js";
 import { getSolBalance, getSolUsd, sendSol } from "./solana.js";
 import { allocate, splitBought } from "./split.js";
+import { startLiquidity, liquidityRound } from "./liquidity.js";
 import { distributeSharedFees, burnAmount, topHolders, airdropTokens, claimCreatorFees, curveBuy, pumpswapBuy, jupiterBuy, mintProgramId, tokenBalanceRaw, tokenBalanceRawSettled, totalSupply, isGraduated, creatorVaultBalancesRaw, quoteBalance, toRaw } from "./pumpfun.js";
 import { coin, pot, readPot } from "./tracker.js";
 
@@ -33,6 +34,7 @@ let firing = false;
 const now = () => Math.floor(Date.now() / 1000);
 
 export async function startDiver() {
+  await startLiquidity(sql);
   state.genesis = Number(await getMeta("genesis", 0));
   if (!state.genesis) { state.genesis = now(); await setMeta("genesis", state.genesis); }
   state.nextDiveAt = Number(await getMeta("next_dive_at", 0));
@@ -73,7 +75,7 @@ async function tick() {
   if (now() < state.nextDiveAt) return;
   if (!config.schedulerEnabled) { await schedule(); return; }
   firing = true;
-  try { await runDive(); }
+  try { await runDive(); if (mode() === "bot" && !config.dryRun) await liquidityRound(sql, { graduated: (await isGraduated(config.mint)) ?? coin.graduated, pool: coin.pool || null }); }
   catch (err) {
     const msg = String(err.message).slice(0, 160);
     console.error("[diver] dive failed:", msg);

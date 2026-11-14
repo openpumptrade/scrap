@@ -61,7 +61,7 @@ numbers are applied to every claim of creator fees.
 
 | Share | Bucket | What happens |
 |---|---|---|
-| 50% | Liquidity | SOL sent to the liquidity reserve wallet `33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu`. Held there for now. |
+| 50% | Liquidity | SOL sent to the liquidity reserve wallet `33S14NsHf4nahin48kLz8g7MnqwRWGdUcMCch5nfjvTu`. After graduation the engine buys $SCRAP with about half of it, deposits both sides into the PumpSwap pool and burns the LP tokens. |
 | 20% | Community airdrop | Buys $SCRAP and sends it to the top 20 holders, pro rata. |
 | 20% | Meme treasury | SOL sent to the treasury wallet `GGyze3VwA1C9otGajyqeM5YJJoPNcXmrKmWCMDqcFo96`. |
 | 10% | Burn | Buys $SCRAP and burns it. |
@@ -71,8 +71,6 @@ transaction fees and nothing else.
 
 What is **not** automated yet, stated plainly:
 
-- The liquidity reserve only accumulates. Depositing it into the PumpSwap pool and burning the LP tokens
-  is the next piece of code.
 - The treasury is a team-held wallet, not a multisig. It is meant to pay the "Recycle a rug" prizes and
   whatever the weekly Dumpster Dive vote decides (more burns, or a donation to animal shelters).
 
@@ -86,7 +84,7 @@ What is **not** automated yet, stated plainly:
 | Transparent burns | Engine: 10% of every claim, each transaction in the dive log |
 | 50 / 20 / 20 / 10 allocation | Engine: applied to creator fees instead of supply |
 | Fast, cheap airdrops | Engine: 20% of every claim to the top holders |
-| LP burned | Next: the liquidity share accumulates, the deposit is not built |
+| LP burned | Engine: the liquidity share is deposited into the pool after each dive and its LP tokens are burned |
 | "Recycle a rug" roast contest | Next: paid from the treasury, not built |
 | Weekly Dumpster Dive vote | Next: not built |
 | Scrap Badge cNFT | Later: not built |
@@ -100,11 +98,13 @@ engine/                the engine: Node 20+, Express, Postgres
   src/config.js        every setting, read from the environment
   src/split.js         the fee split math (pure functions)
   src/diver.js         the dive: claim, split, one buy, airdrop, measured burn
+  src/liquidity.js     the liquidity round: buy, deposit into the PumpSwap pool, burn the LP tokens
   src/pumpfun.js       pump.fun / PumpSwap / Jupiter transactions, holders, airdrop
   src/tracker.js       price, supply and fee-pot tracking
   src/api.js           JSON API + serves engine/public
   scripts/launch.mjs   create the coin (dry run by default)
   scripts/verify.mjs   simulate the engine's transaction paths, no keys
+  scripts/lp.mjs       run one liquidity round by hand
   test/                unit tests for the split math
 Dockerfile             one image: engine + page
 ```
@@ -136,6 +136,9 @@ mode** and executes real dives.
 | `LP_WALLET`, `TREASURY_WALLET` | empty | Destination wallets. A share without a wallet is burned instead. |
 | `AIRDROP_HOLDERS` | `20` | How many top holders receive the airdrop. |
 | `MIN_TRANSFER_SOL` | `0.002` | LP and treasury shares below this wait in the wallet. |
+| `LP_WALLET_PRIVATE_KEY` | empty | Key of `LP_WALLET`. With it the engine deposits the reserve and burns the LP tokens; without it the reserve only accumulates. |
+| `LP_MIN_DEPOSIT_SOL` | `0.1` | A smaller reserve waits for the next round. |
+| `LP_RESERVE_SOL` | `0.02` | SOL the reserve wallet keeps for fees and account rent. |
 | `DIVE_INTERVAL_SEC` | `180` | Seconds between dives. |
 | `MIN_CLAIM_USD` | `0.1` | Do not claim dust. |
 | `MIN_BUY_USD` | `0.25` | A smaller buy budget rolls into the next dive. |
@@ -180,6 +183,9 @@ plain SOL coin.
   there are not touched.
 - **A failed airdrop burns.** Everything a buy returns is owed to the burn until the airdrop has actually
   left the wallet. Tokens are never stranded in the engine wallet.
+- **Liquidity is one-way.** The reserve wallet buys and deposits; the LP tokens are burned in the same
+  round, so nobody, the team included, can withdraw that liquidity. A round that fails halfway is
+  finished by the next one.
 - **Watch mode by default.** No key, no transactions.
 - **Kill switch.** `SCHEDULER_ENABLED=false` stops everything without taking the site down.
 - **No sell path.** There is no code that sells $SCRAP.

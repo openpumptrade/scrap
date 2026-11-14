@@ -7,6 +7,7 @@ import { config, mode } from "./config.js";
 import { sql } from "./db.js";
 import { coin, pot, engineWallet } from "./tracker.js";
 import { state, rowToJson } from "./diver.js";
+import { lpState } from "./liquidity.js";
 import { fetchCandles, fetchTrades, taxConfig } from "./pumpfun.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +54,7 @@ export function startApi() {
       burnedPct: coin.supply0 ? coin.burned / coin.supply0 : 0, marketUpdatedAt: coin.updatedAt,
       pot: { unclaimed: pot.unclaimed, unclaimedUsd: pot.unclaimedUsd, wallet: pot.wallet, spendable: pot.spendable, walletSol: pot.walletSol, walletTokens: pot.walletTokens, estTokens: pot.estTokens, updatedAt: pot.updatedAt, error: pot.error },
       nextDiveAt: state.nextDiveAt, genesis: state.genesis, progress: state.progress, lastNote: state.lastNote,
-      split: config.split, lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet, totalLp: state.totalLp, totalTreasury: state.totalTreasury, totalAirdropped: state.totalAirdropped,
+      liquidity: lpState, split: config.split, lpWallet: config.lpWallet, treasuryWallet: config.treasuryWallet, totalLp: state.totalLp, totalTreasury: state.totalTreasury, totalAirdropped: state.totalAirdropped,
       divesRun: state.divesRun, totalSpentQuote: state.totalSpentQuote, totalSpentUsd: state.totalSpentUsd, totalBurned: state.totalBurned, dryTotals: state.dryTotals, lastDive: state.lastDive,
       links: { pump: `https://pump.fun/coin/${coin.mint}`, explorer: `https://solscan.io/token/${coin.mint}`, wallet: `https://solscan.io/account/${engineWallet()}`, tx: "https://solscan.io/tx/", quote: coin.quote?.isSol ? "" : `https://solscan.io/token/${coin.quote.mint}` },
       now: now(),
